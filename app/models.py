@@ -1,9 +1,6 @@
-# app/models.py
-
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-# Ініціалізуємо ORM
 db = SQLAlchemy()
 
 class Client(db.Model):
@@ -29,7 +26,6 @@ class City(db.Model):
     CreatedDate  = db.Column(db.DateTime, default=datetime.utcnow)
     LastUpdated  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Зв'язок до замовлень
     orders = db.relationship('Order', back_populates='city')
 
 class Position(db.Model):
@@ -271,7 +267,6 @@ class SupplyDetail(db.Model):
     contract = db.relationship('SupplyContracts', back_populates='details')
     product  = db.relationship('Product', back_populates='supply_details')
 
-# внизу app/models.py
 class LocationStatusView(db.Model):
     __tablename__ = 'vw_LocationStatus'
     __table_args__ = {'schema': 'Belteh', 'extend_existing': True}

@@ -13,12 +13,7 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
 
-    # ——— Прибрали цей глобальний маршрут ———
-    # @app.route('/')
-    # def index():
-    #     return render_template('index.html')
-
-    # Реєструємо blueprints
+    # blueprints
     app.register_blueprint(inv_bp, url_prefix='/inventory')
     app.register_blueprint(main_bp)
 

@@ -1,5 +1,3 @@
-# app/routes/inventory.py
-
 from flask import Blueprint, render_template, request
 from app.models import Inventory, Product, ProductCategory
 

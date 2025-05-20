@@ -155,7 +155,6 @@ def dashboard():
             'change': f"{pct}%" if pct is not None else '—'
         })
 
-    # Перенести return ось сюди, поза циклом!
     return render_template('index.html',
                            new_orders=curr_orders,
                            order_growth=f"{round(order_growth)}%" if order_growth is not None else '—',
