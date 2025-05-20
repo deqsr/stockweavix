@@ -1,0 +1,126 @@
+body {
+  padding-top: 56px;
+  background-color: #f0f2f5;
+}
+
+.sidebar {
+  width: 250px;
+  position: fixed;
+  top: 56px;
+  bottom: 0;
+  left: 0;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-right: 1px solid #dee2e6;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.sidebar .nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 0.3rem;
+}
+.sidebar .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+}
+.sidebar .nav-link:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
+
+
+.content-wrapper {
+  margin-left: 250px;
+  padding: 1.5rem;
+}
+
+/* Стили для карточек */
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.text-growth-positive {
+  color: #198754;
+}
+.text-growth-negative {
+  color: #dc3545;
+}
+.text-growth-neutral {
+  color: #6c757d;
+}
+
+/* Статуси поставок */
+.badge.status-default { background-color: #adb5bd; color: black; }  /* Сірий - Дефолтний / Невідомий */
+
+/* Вже існуючі у вас: */
+.badge.status-completed { background-color: #198754; color: white; } /* Зелений - Виконаний */
+.badge.status-pending { background-color: #ffc107; color: black; }   /* Жовтий - для "Очікує підписання" */
+.badge.status-shipped { background-color: #0dcaf0; color: black; }   /* Блакитний - Може бути для "В дорозі" */
+.badge.status-cancelled { background-color: #dc3545; color: white; } /* Червоний - Відмінений */
+
+
+.badge.status-active { background-color: #0d6efd; color: white; } /* Синій - Активний */
+.badge.status-pending-signature { background-color: #ffc107; color: black; } /* Жовтий - Очікує підписання */
+.badge.status-overdue { background-color: #842029; color: white; } /* Темно-червоний - Прострочений */
+.badge.status-under-review { background-color: #6f42c1; color: white; } /* Фіолетовий - На перевірці */
+.badge.status-confirmed { background-color: #0a58ca; color: white; } /* Насичений синій - Підтверджений */
+.badge.status-voided { background-color: #6c757d; color: white; } /* Темно-сірий - Анульований */
+.badge.status-rework { background-color: #fd7e14; color: white; } /* Помаранчевий - На доопрацюванні */
+.badge.status-delayed { background-color: #ffca2c; color: black; } /* Темніший жовтий - Затриманий */
+.badge.status-new {
+  background-color: #6c757d;
+  color: white; /* Білий текст на сірому фоні */
+}
+
+/* Стилізація фільтрів */
+.filters-card {
+    background-color: #f8f9fa; /* Світлий фон для блоку фільтрів */
+    border-top: 1px solid #dee2e6;
+    border-radius: 0 0 0.5rem 0.5rem; /* Заокруглення тільки знизу, якщо під графіком */
+}
+.filters-card .form-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Прогрес-бар */
+.progress {
+    height: 20px;
+    font-size: 0.75rem;
+    background-color: #e9ecef;
+}
+.progress-bar {
+    color: white;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.progress-bar.bg-success { background-color: #28a745 !important; }
+.progress-bar.bg-warning { background-color: #ffc107 !important; color: #212529 !important; }
+.progress-bar.bg-danger { background-color: #dc3545 !important; }
+
+/* Навбар */
+.navbar {
+  padding-left: calc(1.2rem);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.navbar-brand {
+  margin: 0;
+  font-weight: 600;
+}

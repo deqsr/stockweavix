@@ -1,0 +1,67 @@
+{% extends 'layout.html' %}
+
+{% block title %}Деталі постачання #{{ contract.SupplyID }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Деталі постачання #{{ contract.SupplyID }}</h5>
+            <a href="{{ url_for('supplies_bp.list_supplies') }}" class="btn btn-outline-secondary btn-sm">До списку постачань</a>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p><strong>Постачальник:</strong> {{ contract.supplier.SupplierName if contract.supplier else 'N/A' }}</p>
+                    <p><strong>Дата створення:</strong> {{ contract.CreatedDate.strftime('%d.%m.%Y %H:%M') if contract.CreatedDate else 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Статус:</strong> <span class="badge rounded-pill {{ contract.status.CssClassName if contract.status and contract.status.CssClassName else 'status-default' }}">{{ contract.status.StatusName if contract.status else 'N/A' }}</span></p>
+                    <p><strong>Загальна сума:</strong> {{ "%.2f"|format(display_price|float) }} ₴</p>
+                </div>
+            </div>
+            {% if contract.Description %}
+            <div class="mb-3">
+                <p><strong>Опис:</strong></p>
+                <p>{{ contract.Description }}</p>
+            </div>
+            {% endif %}
+
+            <h6 class="mt-4">Товари в поставці:</h6>
+            {% if contract.details %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID Товару</th>
+                            <th>Назва товару</th>
+                            <th class="text-end">Кількість</th>
+                            <th class="text-end">Ціна за од. (₴)</th>
+                            <th class="text-end">Сума (₴)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in contract.details %}
+                        <tr>
+                            <td>{{ detail.ProductID }}</td>
+                            <td>{{ detail.product.ProductName if detail.product else 'N/A' }}</td>
+                            <td class="text-end">{{ detail.Quantity }}</td>
+                            <td class="text-end">{{ "%.2f"|format(detail.UnitPrice|float) if detail.UnitPrice is not none else '0.00' }}</td>
+                            <td class="text-end">{{ "%.2f"|format((detail.Quantity * detail.UnitPrice)|float) if detail.Quantity and detail.UnitPrice else '0.00' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Товари до цього постачання ще не додані.</p>
+            {% endif %}
+
+            <div class="mt-4 d-flex justify-content-end">
+                <a href="{{ url_for('supplies_bp.edit_supply_contract', supply_id=contract.SupplyID) }}" class="btn btn-warning me-2">Редагувати поставку</a>
+                {# <a href="#" class="btn btn-info">Додати/Редагувати товари</a> #} {# для майбутнього #}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+
+{% block title %}Створення нового постачання{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Нове постачання</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('supplies_bp.create_supply_contract') }}">
+                        {# Відображення флеш-повідомлень #}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            <label for="supplier_id" class="form-label">Постачальник <span class="text-danger">*</span></label>
+                            <select class="form-select" id="supplier_id" name="supplier_id" required>
+                                <option value="" {% if not form_data.get('supplier_id') %}selected{% endif %} disabled>Оберіть постачальника...</option>
+                                {% for supplier in all_suppliers %}
+                                <option value="{{ supplier.SupplierID }}" {% if form_data.get('supplier_id')|int == supplier.SupplierID %}selected{% endif %}>
+                                    {{ supplier.SupplierName }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        {# Поля для дати та статусу тна бекенді #}
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Опис (коментар)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ form_data.get('description', '') }}</textarea>
+                        </div>
+                        
+                        <div class="alert alert-info small">
+                            Деталі постачання (товари, кількість, ціни) можна буде додати на наступному кроці, після створення основного запису про постачання.
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('supplies_bp.list_supplies') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Створити постачання</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

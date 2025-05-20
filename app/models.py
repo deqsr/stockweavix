@@ -1,296 +1,440 @@
+from __future__ import annotations
+
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Integer, String, DateTime, Date, Numeric, ForeignKey, Text, Float as SQLAlchemyFloat, Index, UniqueConstraint
+from sqlalchemy.dialects.mssql import DATETIME2 # Для Location дат
+from datetime import datetime, date, timezone
+
+import decimal
 
 db = SQLAlchemy()
 
-class Client(db.Model):
-    __tablename__ = 'Clients'
-    __table_args__ = {'schema': 'Belteh'}
-    ClientID      = db.Column(db.Integer, primary_key=True)
-    LastName      = db.Column(db.String(100), nullable=False)
-    FirstName     = db.Column(db.String(100), nullable=False)
-    MiddleName    = db.Column(db.String(100), nullable=True)
-    Phone         = db.Column(db.String(50), nullable=True)
-    Email         = db.Column(db.String(100), nullable=True)
-    Address       = db.Column(db.String(255), nullable=False)
-    CreatedDate   = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    orders = db.relationship('Order', back_populates='client')
+# Допоміжна функція для server_default, щоб уникнути проблем з lambda в деяких версіях
+def default_utc_now():
+    return datetime.now(timezone.utc)
 
 class City(db.Model):
     __tablename__ = 'Cities'
-    __table_args__ = {'schema': 'Belteh'}
-    CityID       = db.Column(db.Integer, primary_key=True)
-    CityName     = db.Column('CityName', db.String(100), unique=True, nullable=False)
-    CreatedDate  = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        db.PrimaryKeyConstraint('CityID', name='PK__Cities__F2D21A96E70C87F2'),
+        {'schema': 'Belteh'}
+    )
 
-    orders = db.relationship('Order', back_populates='city')
+    CityID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    CityName: Mapped[str] = mapped_column(String(100), unique=True)
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now) # onupdate для Flask
 
-class Position(db.Model):
-    __tablename__ = 'Positions'
-    __table_args__ = {'schema': 'Belteh'}
-    PositionID   = db.Column(db.Integer, primary_key=True)
-    PositionName = db.Column(db.String(100), nullable=False)
+    orders: Mapped[list[Order]] = relationship('Order', back_populates='city')
 
-    employees = db.relationship('Employee', back_populates='position')
+class Client(db.Model):
+    __tablename__ = 'Clients'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('ClientID', name='PK__Clients__E67E1A04246819A8'),
+        {'schema': 'Belteh'}
+    )
 
-class Warehouse(db.Model):
-    __tablename__ = 'Warehouses'
-    __table_args__ = {'schema': 'Belteh'}
-    WarehouseID   = db.Column(db.Integer, primary_key=True)
-    WarehouseName = db.Column(db.String(150), nullable=False)
-    Description   = db.Column(db.String, nullable=True)
-    Address       = db.Column(db.String, nullable=True)
-    CreatedDate   = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    ClientID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    LastName: Mapped[str] = mapped_column(String(50), server_default=db.text("('Невідомо')"))
+    FirstName: Mapped[str] = mapped_column(String(50), server_default=db.text("('Невідомо')"))
+    Address: Mapped[str] = mapped_column(String(500), server_default=db.text("('Не вказано')"))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now, onupdate=default_utc_now)
+    MiddleName: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    Phone: Mapped[str | None] = mapped_column(String(15), nullable=True)
+    Email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    employees = db.relationship('Employee', back_populates='warehouse')
-    locations = db.relationship('Location', back_populates='warehouse')  # полиці/локації
-    zones = db.relationship('Zone', back_populates='warehouse')
-
-class Employee(db.Model):
-    __tablename__ = 'Employees'
-    __table_args__ = {'schema': 'Belteh'}
-    EmployeeID        = db.Column(db.Integer, primary_key=True)
-    PositionID        = db.Column(db.Integer, db.ForeignKey('Belteh.Positions.PositionID'), nullable=False)
-    WarehouseID       = db.Column(db.Integer, db.ForeignKey('Belteh.Warehouses.WarehouseID'), nullable=False)
-    EmployeeLastName  = db.Column(db.String(100), nullable=False)
-    EmployeeFirstName = db.Column(db.String(100), nullable=False)
-    EmployeePatronymic = db.Column(db.String(100), nullable=True)
-    EmployeePassport  = db.Column(db.String(50), nullable=True)
-    EmployeePhone     = db.Column(db.String(50), nullable=True)
-    EmployeeEmail     = db.Column(db.String(100), nullable=True)
-    CreatedDate       = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    position  = db.relationship('Position', back_populates='employees')
-    warehouse = db.relationship('Warehouse', back_populates='employees')
-
-class Zone(db.Model):
-    __tablename__ = 'Zones'
-    __table_args__ = {'schema': 'Belteh'}
-    ZoneID      = db.Column(db.Integer, primary_key=True)
-    ZoneCode    = db.Column(db.Integer, nullable=False)
-    ZoneName    = db.Column(db.String(100), nullable=False)
-    WarehouseID = db.Column(db.Integer, db.ForeignKey('Belteh.Warehouses.WarehouseID'), nullable=False)
-    RowMin      = db.Column(db.Integer, nullable=False)
-    RowMax      = db.Column(db.Integer, nullable=False)
-    Description = db.Column(db.String, nullable=True)
-    CreatedDate = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    warehouse = db.relationship('Warehouse', back_populates='zones')
-    rows      = db.relationship('ZoneRow', back_populates='zone')
-
-class ZoneRow(db.Model):
-    __tablename__ = 'ZoneRows'
-    __table_args__ = {'schema': 'Belteh'}
-    ZoneRowID = db.Column(db.Integer, primary_key=True)
-    ZoneID    = db.Column(db.Integer, db.ForeignKey('Belteh.Zones.ZoneID'), nullable=False)
-    RowNumber = db.Column(db.Integer, nullable=False)
-
-    zone  = db.relationship('Zone', back_populates='rows')
-    locations = db.relationship('Location', back_populates='row')
-
-class Location(db.Model):
-    __tablename__ = 'Locations'
-    __table_args__ = {'schema': 'Belteh'}
-    LocationID      = db.Column(db.Integer, primary_key=True)
-    WarehouseID     = db.Column(db.Integer, db.ForeignKey('Belteh.Warehouses.WarehouseID'), nullable=True)
-    ZoneRowID       = db.Column(db.Integer, db.ForeignKey('Belteh.ZoneRows.ZoneRowID'), nullable=True)
-    SectionID       = db.Column(db.Integer, db.ForeignKey('Belteh.ZoneSections.SectionID'), nullable=True)
-    ShelfID         = db.Column(db.Integer, db.ForeignKey('Belteh.ZoneShelves.ShelfID'), nullable=True)
-    CreatedDate     = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdatedDate = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    warehouse = db.relationship('Warehouse', back_populates='locations')
-    row       = db.relationship('ZoneRow', back_populates='locations')
-    section   = db.relationship('ZoneSection', back_populates='locations')
-    shelf     = db.relationship('ZoneShelf', back_populates='locations')
-    inventory_items = db.relationship('Inventory', back_populates='location')
-
-class ZoneSection(db.Model):
-    __tablename__ = 'ZoneSections'
-    __table_args__ = {'schema': 'Belteh'}
-    SectionID     = db.Column(db.Integer, primary_key=True)
-    SectionNumber = db.Column(db.Integer, nullable=False)
-    locations     = db.relationship('Location', back_populates='section')
-
-class ZoneShelf(db.Model):
-    __tablename__ = 'ZoneShelves'
-    __table_args__ = {'schema': 'Belteh'}
-    ShelfID     = db.Column(db.Integer, primary_key=True)
-    ShelfLevel  = db.Column(db.Integer, nullable=False)
-    locations   = db.relationship('Location', back_populates='shelf')
+    orders: Mapped[list[Order]] = relationship('Order', back_populates='client')
 
 class Manufacturer(db.Model):
     __tablename__ = 'Manufacturers'
-    __table_args__ = {'schema': 'Belteh'}
-    ManufacturerID          = db.Column(db.Integer, primary_key=True)
-    ManufacturerName        = db.Column(db.String(150), nullable=False)
-    ManufacturerDescription = db.Column(db.String, nullable=True)
-    CreatedDate             = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated             = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        db.PrimaryKeyConstraint('ManufacturerID', name='PK__Manufact__357E5CA10335A6E8'),
+        {'schema': 'Belteh'}
+    )
 
-    products = db.relationship('Product', back_populates='manufacturer')
+    ManufacturerID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ManufacturerName: Mapped[str] = mapped_column(String(255))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    ManufacturerDescription: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-class ProductCategory(db.Model):
-    __tablename__ = 'ProductCategories'
-    __table_args__ = {'schema': 'Belteh'}
-    CategoryID    = db.Column(db.Integer, primary_key=True)
-    CategoryName  = db.Column(db.String(100), nullable=False)
-    Description   = db.Column(db.String, nullable=True)
-    CreatedDate   = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    products = db.relationship('Product', back_populates='category')
-
-class Product(db.Model):
-    __tablename__ = 'Products'
-    __table_args__ = {'schema': 'Belteh'}
-    ProductID         = db.Column(db.Integer, primary_key=True)
-    ProductName       = db.Column(db.String(150), nullable=False)
-    ManufacturerID    = db.Column(db.Integer, db.ForeignKey('Belteh.Manufacturers.ManufacturerID'), nullable=True)
-    ProductCategoryID = db.Column(db.Integer, db.ForeignKey('Belteh.ProductCategories.CategoryID'), nullable=False)
-    ProductDescription= db.Column(db.String, nullable=True)
-    SKU               = db.Column(db.String(50), unique=True, nullable=False)
-    Price             = db.Column(db.Numeric, nullable=True)
-    CreatedDate       = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    manufacturer     = db.relationship('Manufacturer', back_populates='products')
-    category         = db.relationship('ProductCategory', back_populates='products')
-    inventory_items  = db.relationship('Inventory', back_populates='product')
-    order_items      = db.relationship('OrderItem', back_populates='product')
-    supply_details   = db.relationship('SupplyDetail', back_populates='product')
-
-class Inventory(db.Model):
-    __tablename__ = 'Inventory'
-    __table_args__ = {'schema': 'Belteh'}
-    InventoryID  = db.Column(db.Integer, primary_key=True)
-    ProductID    = db.Column(db.Integer, db.ForeignKey('Belteh.Products.ProductID'), nullable=False)
-    LocationID   = db.Column(db.Integer, db.ForeignKey('Belteh.Locations.LocationID'), nullable=False)
-    Quantity     = db.Column(db.Integer, nullable=False)
-    LastUpdated  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    product      = db.relationship('Product', back_populates='inventory_items')
-    location     = db.relationship('Location', back_populates='inventory_items')
+    products: Mapped[list[Product]] = relationship('Product', back_populates='manufacturer')
 
 class OrderStatus(db.Model):
     __tablename__ = 'OrderStatuses'
-    __table_args__ = {'schema': 'Belteh'}
-    OrderStatusID = db.Column(db.Integer, primary_key=True)
-    StatusName    = db.Column(db.String(50), nullable=False)
+    __table_args__ = (
+        db.PrimaryKeyConstraint('OrderStatusID', name='PK__OrderSta__BC674F4139D5CCFE'),
+        {'schema': 'Belteh'}
+    )
 
-    orders = db.relationship('Order', back_populates='status')
+    OrderStatusID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    StatusName: Mapped[str] = mapped_column(String(255))
 
-class Order(db.Model):
-    __tablename__ = 'Orders'
-    __table_args__ = {'schema': 'Belteh'}
-    OrderID       = db.Column(db.Integer, primary_key=True)
-    ClientID      = db.Column(db.Integer, db.ForeignKey('Belteh.Clients.ClientID'), nullable=True)
-    CityID        = db.Column(db.Integer, db.ForeignKey('Belteh.Cities.CityID'), nullable=True)
-    OrderDate     = db.Column(db.Date, nullable=False)
-    PaymentDate   = db.Column(db.Date, nullable=True)
-    Address = db.Column(db.String(255), nullable=True)
-    OrderStatusID = db.Column(db.Integer, db.ForeignKey('Belteh.OrderStatuses.OrderStatusID'), nullable=False)
-    Description = db.Column(db.String, nullable=True)
-    CreatedDate   = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    client        = db.relationship('Client', back_populates='orders')
-    city          = db.relationship('City', back_populates='orders')
-    status        = db.relationship('OrderStatus', back_populates='orders')
-    items         = db.relationship('OrderItem', back_populates='order')
+    orders: Mapped[list[Order]] = relationship('Order', back_populates='status')
 
-class OrderItem(db.Model):
-    __tablename__ = 'OrderItems'
-    __table_args__ = {'schema': 'Belteh'}
-    OrderItemID = db.Column(db.Integer, primary_key=True)
-    OrderID     = db.Column(db.Integer, db.ForeignKey('Belteh.Orders.OrderID'), nullable=False)
-    ProductID   = db.Column(db.Integer, db.ForeignKey('Belteh.Products.ProductID'), nullable=False)
-    Quantity    = db.Column(db.Integer, nullable=False)
-    UnitPrice   = db.Column(db.Numeric, nullable=False)
+class Position(db.Model):
+    __tablename__ = 'Positions'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('PositionID', name='PK__Position__60BB9A596E5A2324'),
+        {'schema': 'Belteh'}
+    )
 
-    order       = db.relationship('Order', back_populates='items')
-    product     = db.relationship('Product', back_populates='order_items')
+    PositionID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    PositionName: Mapped[str] = mapped_column(String(255))
+    employees: Mapped[list[Employee]] = relationship('Employee', back_populates='position')
+
+class ProductCategory(db.Model):
+    __tablename__ = 'ProductCategories'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('CategoryID', name='PK__ProductC__19093A2BC48B73DF'),
+        {'schema': 'Belteh'}
+    )
+
+    CategoryID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    CategoryName: Mapped[str] = mapped_column(String(255))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    products: Mapped[list[Product]] = relationship('Product', back_populates='category')
 
 class Supplier(db.Model):
     __tablename__ = 'Suppliers'
-    __table_args__ = {'schema': 'Belteh'}
-    SupplierID     = db.Column(db.Integer, primary_key=True)
-    SupplierName   = db.Column(db.String(150), nullable=False)
-    SupplierAddress= db.Column(db.String, nullable=True)
-    SupplierPhone  = db.Column(db.String(50), nullable=True)
-    SupplierEDRPOU = db.Column(db.String(50), nullable=True)
-    SupplierMFI    = db.Column(db.String(50), nullable=True)
-    ContactPerson  = db.Column(db.String(100), nullable=True)
-    CreatedDate    = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated    = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        db.PrimaryKeyConstraint('SupplierID', name='PK__Supplier__4BE66694CE91E7F7'),
+        {'schema': 'Belteh'}
+    )
 
-    contracts      = db.relationship('SupplyContracts', back_populates='supplier')
+    SupplierID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    SupplierName: Mapped[str] = mapped_column(String(255))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    SupplierAddress: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    SupplierPhone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    SupplierEDRPOU: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    SupplierMFI: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    ContactPerson: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-class SupplyStatus(db.Model):
+    contracts: Mapped[list[SupplyContract]] = relationship('SupplyContract', back_populates='supplier')
+
+class SupplyStatus(db.Model): # Змінив SupplyStatuses на SupplyStatus
     __tablename__ = 'SupplyStatuses'
-    __table_args__ = {'schema': 'Belteh'}
-    SupplyStatusID= db.Column(db.Integer, primary_key=True)
-    StatusName    = db.Column(db.String(50), nullable=False)
+    __table_args__ = (
+        db.PrimaryKeyConstraint('SupplyStatusID', name='PK__Contract__96D70656FDDE505B'),
+        {'schema': 'Belteh'}
+    )
 
-    contracts     = db.relationship('SupplyContracts', back_populates='status')
+    SupplyStatusID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    StatusName: Mapped[str] = mapped_column(String(255))
+    CssClassName: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
-class SupplyContracts(db.Model):
+    contracts: Mapped[list[SupplyContract]] = relationship('SupplyContract', back_populates='status')
+
+class Warehouse(db.Model):
+    __tablename__ = 'Warehouses'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('WarehouseID', name='PK__Warehous__2608AFD922FDC967'),
+        {'schema': 'Belteh'}
+    )
+
+    WarehouseID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    WarehouseName: Mapped[str] = mapped_column(String(255))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    Address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    employees: Mapped[list[Employee]] = relationship('Employee', back_populates='warehouse')
+    zones: Mapped[list[Zone]] = relationship('Zone', back_populates='warehouse')
+    locations: Mapped[list[Location]] = relationship('Location', back_populates='warehouse')
+
+class ZoneSection(db.Model): # Змінив ZoneSections на ZoneSection
+    __tablename__ = 'ZoneSections'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('SectionID', name='PK__ZoneSect__80EF0892ED46AC0D'),
+        db.Index('UQ__ZoneSect__B6D6EE018FE38E67', 'SectionNumber', unique=True),
+        {'schema': 'Belteh'}
+    )
+
+    SectionID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    SectionNumber: Mapped[int] = mapped_column(Integer)
+
+    locations: Mapped[list[Location]] = relationship('Location', back_populates='section')
+
+class ZoneShelf(db.Model): # Змінив ZoneShelves на ZoneShelf
+    __tablename__ = 'ZoneShelves'
+    __table_args__ = (
+        db.PrimaryKeyConstraint('ShelfID', name='PK__ZoneShel__DBD04F27FA0BAB71'),
+        db.Index('UQ__ZoneShel__AFFEC82EC9B3E5AC', 'ShelfLevel', unique=True),
+        {'schema': 'Belteh'}
+    )
+
+    ShelfID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ShelfLevel: Mapped[int] = mapped_column(Integer)
+
+    locations: Mapped[list[Location]] = relationship('Location', back_populates='shelf')
+
+class Employee(db.Model):
+    __tablename__ = 'Employees'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['PositionID'], ['Belteh.Positions.PositionID'], name='FK_Employees_Positions'),
+        db.ForeignKeyConstraint(['WarehouseID'], ['Belteh.Warehouses.WarehouseID'], name='FK_Employees_Warehouses'),
+        db.PrimaryKeyConstraint('EmployeeID', name='PK__Employee__7AD04FF178670A77'),
+        {'schema': 'Belteh'}
+    )
+
+    EmployeeID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    PositionID: Mapped[int] = mapped_column(ForeignKey('Belteh.Positions.PositionID'))
+    WarehouseID: Mapped[int] = mapped_column(ForeignKey('Belteh.Warehouses.WarehouseID'))
+    EmployeeLastName: Mapped[str] = mapped_column(String(255))
+    EmployeeFirstName: Mapped[str] = mapped_column(String(255))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    EmployeePatronymic: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    EmployeePassport: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    EmployeePhone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    EmployeeEmail: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    position: Mapped[Position] = relationship('Position', back_populates='employees')
+    warehouse: Mapped[Warehouse] = relationship('Warehouse', back_populates='employees')
+
+class Order(db.Model): # Змінив Orders на Order
+    __tablename__ = 'Orders'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['CityID'], ['Belteh.Cities.CityID'], name='FK_Orders_Cities'),
+        db.ForeignKeyConstraint(['ClientID'], ['Belteh.Clients.ClientID'], name='FK_Orders_Clients'),
+        db.ForeignKeyConstraint(['OrderStatusID'], ['Belteh.OrderStatuses.OrderStatusID'], name='FK_Orders_OrderStatuses'),
+        db.PrimaryKeyConstraint('OrderID', name='PK_Orders_OrderID'),
+        {'schema': 'Belteh'}
+    )
+
+    OrderID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    OrderDate: Mapped[date] = mapped_column(Date) # Використовуємо date з datetime
+    OrderStatusID: Mapped[int] = mapped_column(ForeignKey('Belteh.OrderStatuses.OrderStatusID'))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now, onupdate=default_utc_now)
+    ClientID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Clients.ClientID'), nullable=True)
+    CityID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Cities.CityID'), nullable=True)
+    PaymentDate: Mapped[date | None] = mapped_column(Date, nullable=True)
+    Address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    Description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    city: Mapped[City | None] = relationship('City', back_populates='orders')
+    client: Mapped[Client | None] = relationship('Client', back_populates='orders')
+    status: Mapped[OrderStatus] = relationship('OrderStatus', back_populates='orders')
+    items: Mapped[list[OrderItem]] = relationship('OrderItem', back_populates='order') # Буде додано, коли визначимо OrderItem
+
+class Product(db.Model):
+    __tablename__ = 'Products'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['ManufacturerID'], ['Belteh.Manufacturers.ManufacturerID'], name='FK_Products_Manufacturers'),
+        db.ForeignKeyConstraint(['ProductCategoryID'], ['Belteh.ProductCategories.CategoryID'], name='FK_Products_ProductCategories'),
+        db.PrimaryKeyConstraint('ProductID', name='PK__Products__B40CC6ED93612CFE'),
+        db.UniqueConstraint('SKU', name='UQ__Products__DD4E05F2xxxxxxx'),
+        {'schema': 'Belteh'}
+    )
+
+    ProductID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ProductName: Mapped[str] = mapped_column(String(255))
+    ProductCategoryID: Mapped[int] = mapped_column(ForeignKey('Belteh.ProductCategories.CategoryID'))
+    SKU: Mapped[str] = mapped_column(String(100), unique=True)
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    ManufacturerID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Manufacturers.ManufacturerID'), nullable=True)
+    ProductDescription: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    Price: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+
+    manufacturer: Mapped[Manufacturer | None] = relationship('Manufacturer', back_populates='products')
+    category: Mapped[ProductCategory] = relationship('ProductCategory', back_populates='products')
+    order_items: Mapped[list[OrderItem]] = relationship('OrderItem', back_populates='product')
+    supply_details: Mapped[list[SupplyDetail]] = relationship('SupplyDetail', back_populates='product')
+    inventory_items: Mapped[list[Inventory]] = relationship('Inventory', back_populates='product')
+
+class SupplyContract(db.Model):
     __tablename__ = 'SupplyContracts'
-    __table_args__ = {'schema': 'Belteh'}
-    SupplyID        = db.Column(db.Integer, primary_key=True)
-    SupplierID      = db.Column(db.Integer, db.ForeignKey('Belteh.Suppliers.SupplierID'), nullable=False)
-    ContractPrice   = db.Column(db.Numeric, nullable=True)
-    PaymentDate     = db.Column(db.Date, nullable=True)
-    SupplyStatusID  = db.Column(db.Integer, db.ForeignKey('Belteh.SupplyStatuses.SupplyStatusID'), nullable=False)
-    Description     = db.Column(db.String, nullable=True)
-    CreatedDate     = db.Column(db.DateTime, default=datetime.utcnow)
-    LastUpdated     = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        db.ForeignKeyConstraint(['SupplierID'], ['Belteh.Suppliers.SupplierID'], name='FK_SupplyContracts_Suppliers'),
+        db.ForeignKeyConstraint(['SupplyStatusID'], ['Belteh.SupplyStatuses.SupplyStatusID'], name='FK_SupplyContracts_SupplyStatuses'),
+        db.PrimaryKeyConstraint('SupplyID', name='PK__SupplyCo__C90D3409B87C0427'),
+        {'schema': 'Belteh'}
+    )
 
-    supplier        = db.relationship('Supplier', back_populates='contracts')
-    status          = db.relationship('SupplyStatus', back_populates='contracts')
-    details         = db.relationship('SupplyDetail', back_populates='contract')
+    SupplyID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    SupplierID: Mapped[int] = mapped_column(ForeignKey('Belteh.Suppliers.SupplierID'))
+    SupplyStatusID: Mapped[int] = mapped_column(ForeignKey('Belteh.SupplyStatuses.SupplyStatusID'))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    ContractPrice: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    PaymentDate: Mapped[date | None] = mapped_column(Date, nullable=True)
+    Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    supplier: Mapped[Supplier] = relationship('Supplier', back_populates='contracts')
+    status: Mapped[SupplyStatus] = relationship('SupplyStatus', back_populates='contracts')
+    details: Mapped[list[SupplyDetail]] = relationship('SupplyDetail', back_populates='contract')
+
+class Zone(db.Model):
+    __tablename__ = 'Zones'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['WarehouseID'], ['Belteh.Warehouses.WarehouseID'], name='FK_Zones_Warehouses'),
+        db.PrimaryKeyConstraint('ZoneID', name='PK__Zones__60166795A2BA06ED'),
+        {'schema': 'Belteh'}
+    )
+
+    ZoneID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ZoneCode: Mapped[int] = mapped_column(Integer)
+    ZoneName: Mapped[str] = mapped_column(String(255))
+    WarehouseID: Mapped[int] = mapped_column(ForeignKey('Belteh.Warehouses.WarehouseID'))
+    RowMin: Mapped[int] = mapped_column(Integer)
+    RowMax: Mapped[int] = mapped_column(Integer)
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    warehouse: Mapped[Warehouse] = relationship('Warehouse', back_populates='zones')
+    rows: Mapped[list[ZoneRow]] = relationship('ZoneRow', back_populates='zone')
+
+class OrderItem(db.Model):
+    __tablename__ = 'OrderItems'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['OrderID'], ['Belteh.Orders.OrderID'], name='FK_OrderItems_Orders'),
+        db.ForeignKeyConstraint(['ProductID'], ['Belteh.Products.ProductID'], name='FK_OrderItems_Products'),
+        db.PrimaryKeyConstraint('OrderItemID', name='PK__OrderIte__57ED06A11A488A57'),
+        {'schema': 'Belteh'}
+    )
+
+    OrderItemID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    OrderID: Mapped[int] = mapped_column(ForeignKey('Belteh.Orders.OrderID'))
+    ProductID: Mapped[int] = mapped_column(ForeignKey('Belteh.Products.ProductID'))
+    Quantity: Mapped[int] = mapped_column(Integer)
+    UnitPrice: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2))
+
+    order: Mapped[Order] = relationship('Order', back_populates='items')
+    product: Mapped[Product] = relationship('Product', back_populates='order_items')
+
+    Order.items = relationship('OrderItem', back_populates='order')
+
 
 class SupplyDetail(db.Model):
     __tablename__ = 'SupplyDetails'
-    __table_args__ = {'schema': 'Belteh'}
-    SupplyDetailID = db.Column(db.Integer, primary_key=True)
-    SupplyID       = db.Column(db.Integer, db.ForeignKey('Belteh.SupplyContracts.SupplyID'), nullable=False)
-    ProductID      = db.Column(db.Integer, db.ForeignKey('Belteh.Products.ProductID'), nullable=False)
-    Quantity       = db.Column(db.Integer, nullable=False)
-    UnitPrice      = db.Column(db.Numeric, nullable=True)
+    __table_args__ = (
+        db.ForeignKeyConstraint(['ProductID'], ['Belteh.Products.ProductID'], name='FK_SupplyDetails_Products'),
+        db.ForeignKeyConstraint(['SupplyID'], ['Belteh.SupplyContracts.SupplyID'], name='FK_SupplyDetails_SupplyContracts'),
+        db.PrimaryKeyConstraint('SupplyDetailID', name='PK__Contract__CCA7AF02BA495A24'),
+        {'schema': 'Belteh'}
+    )
 
-    contract = db.relationship('SupplyContracts', back_populates='details')
-    product  = db.relationship('Product', back_populates='supply_details')
+    SupplyDetailID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    SupplyID: Mapped[int] = mapped_column(ForeignKey('Belteh.SupplyContracts.SupplyID'))
+    ProductID: Mapped[int] = mapped_column(ForeignKey('Belteh.Products.ProductID'))
+    Quantity: Mapped[int] = mapped_column(Integer)
+    UnitPrice: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+
+    product: Mapped[Product] = relationship('Product', back_populates='supply_details')
+    contract: Mapped[SupplyContract] = relationship('SupplyContract', back_populates='details')
+
+class ZoneRow(db.Model):
+    __tablename__ = 'ZoneRows'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['ZoneID'], ['Belteh.Zones.ZoneID'], name='FK_ZoneRows_Zones'),
+        db.PrimaryKeyConstraint('ZoneRowID', name='PK__ZoneRows__A94FAD68D04FF7C1'),
+        db.Index('UQ_ZoneRows_Zone_Row', 'ZoneID', 'RowNumber', unique=True),
+        {'schema': 'Belteh'}
+    )
+
+    ZoneRowID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ZoneID: Mapped[int] = mapped_column(ForeignKey('Belteh.Zones.ZoneID'))
+    RowNumber: Mapped[int] = mapped_column(Integer)
+
+    zone: Mapped[Zone] = relationship('Zone', back_populates='rows')
+    locations: Mapped[list[Location]] = relationship('Location', back_populates='row')
+
+class Location(db.Model):
+    __tablename__ = 'Locations'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['SectionID'], ['Belteh.ZoneSections.SectionID'], name='FK_Locations_ZoneSection'),
+        db.ForeignKeyConstraint(['ShelfID'], ['Belteh.ZoneShelves.ShelfID'], name='FK_Locations_ZoneShelf'),
+        db.ForeignKeyConstraint(['WarehouseID'], ['Belteh.Warehouses.WarehouseID'], name='FK_Locations_Warehouse'),
+        db.ForeignKeyConstraint(['ZoneRowID'], ['Belteh.ZoneRows.ZoneRowID'], name='FK_Locations_ZoneRow'),
+        db.PrimaryKeyConstraint('LocationID', name='PK__Location__E7FEA477C0CF483D'),
+        {'schema': 'Belteh'}
+    )
+
+    LocationID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    CreatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'))
+    LastUpdatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    WarehouseID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Warehouses.WarehouseID'), nullable=True)
+    ZoneRowID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.ZoneRows.ZoneRowID'), nullable=True)
+    SectionID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.ZoneSections.SectionID'), nullable=True)
+    ShelfID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.ZoneShelves.ShelfID'), nullable=True)
+
+    warehouse: Mapped[Warehouse | None] = relationship('Warehouse', back_populates='locations')
+    row: Mapped[ZoneRow | None] = relationship('ZoneRow', back_populates='locations')
+    section: Mapped[ZoneSection | None] = relationship('ZoneSection', back_populates='locations')
+    shelf: Mapped[ZoneShelf | None] = relationship('ZoneShelf', back_populates='locations')
+    inventory_items: Mapped[list[Inventory]] = relationship('Inventory', back_populates='location')
+
+    def full_address(self) -> str:
+        parts: list[str] = []
+        current_row = self.row
+        if current_row:
+            current_zone = current_row.zone
+            if current_zone:
+                parts.append(f"Зона: {current_zone.ZoneCode}")
+            parts.append(f"Ряд: {current_row.RowNumber}")
+        current_section = self.section
+        if current_section:
+            parts.append(f"Секція: {current_section.SectionNumber}")
+        current_shelf = self.shelf
+        if current_shelf:
+            parts.append(f"Полиця: {current_shelf.ShelfLevel}")
+        address_str = ", ".join(parts)
+        if not address_str and self.warehouse:
+            current_warehouse = self.warehouse
+            if current_warehouse:
+                return f"Склад: {current_warehouse.WarehouseName}"
+        if not address_str:
+            return "N/A"
+        return address_str
+
+class Inventory(db.Model):
+    __tablename__ = 'Inventory'
+    __table_args__ = (
+        db.ForeignKeyConstraint(['LocationID'], ['Belteh.Locations.LocationID'], name='FK_Inventory_Locations'),
+        db.ForeignKeyConstraint(['ProductID'], ['Belteh.Products.ProductID'], name='FK_Inventory_Products'),
+        db.PrimaryKeyConstraint('InventoryID', name='PK__Inventor__F5FDE6D3B1869395'),
+        {'schema': 'Belteh'}
+    )
+
+    InventoryID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ProductID: Mapped[int] = mapped_column(ForeignKey('Belteh.Products.ProductID'))
+    LocationID: Mapped[int] = mapped_column(ForeignKey('Belteh.Locations.LocationID'))
+    Quantity: Mapped[int] = mapped_column(Integer)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+
+    location: Mapped[Location] = relationship('Location', back_populates='inventory_items')
+    product: Mapped[Product] = relationship('Product', back_populates='inventory_items')
 
 class LocationStatusView(db.Model):
     __tablename__ = 'vw_LocationStatus'
-    __table_args__ = {'schema': 'Belteh', 'extend_existing': True}
-
-    LocationID    = db.Column(db.Integer, primary_key=True)
-    ZoneCode      = db.Column(db.Integer)
-    RowNumber     = db.Column(db.Integer)
-    SectionNumber = db.Column(db.Integer)
-    ShelfLevel    = db.Column(db.Integer)
-    TotalQuantity = db.Column(db.Integer)
-    ShelfStatus   = db.Column(db.String)
-
-    def __repr__(self):
-        return (
-            f"<LocationStatusView "
-            f"{self.LocationID=} Zone={self.ZoneCode} Row={self.RowNumber} "
-            f"Shelf={self.ShelfLevel} Qty={self.TotalQuantity} Status={self.ShelfStatus}>"
-        )
+    __table_args__ = ({'schema': 'Belteh', 'info': {'is_view': True}})
+    LocationID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ZoneCode: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    RowNumber: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    SectionNumber: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ShelfLevel: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    TotalQuantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ShelfStatus: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
 class ZoneOccupancyView(db.Model):
     __tablename__ = 'ZoneOccupancyView'
-    __table_args__ = {'schema': 'Belteh'}
+    __table_args__ = ({'schema': 'Belteh', 'info': {'is_view': True}})
+    ZoneID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    TotalLocations: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    OccupiedLocations: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    OccupancyPercentage: Mapped[float | None] = mapped_column(SQLAlchemyFloat(precision=53), nullable=True)
 
-    ZoneID = db.Column(db.Integer, primary_key=True)
-    TotalLocations = db.Column(db.Integer)
-    OccupiedLocations = db.Column(db.Integer)
-    OccupancyPercentage = db.Column(db.Float)
+
+class User:
+    pass

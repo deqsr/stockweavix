@@ -1,0 +1,261 @@
+{% extends 'layout.html' %}
+
+{% block title %}Редагування постачання #{{ contract.SupplyID }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Редагування постачання #{{ contract.SupplyID }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('supplies_bp.edit_supply_contract', supply_id=contract.SupplyID) }}" id="editSupplyForm">
+                        {# Флеш-повідомлення #}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        {# Поля для Supplier, Status, Description #}
+                        <div class="mb-3">
+                            <label for="supplier_id" class="form-label">Постачальник <span class="text-danger">*</span></label>
+                            <select class="form-select" id="supplier_id" name="supplier_id" required>
+                                <option value="" disabled {% if not (form_data.get('supplier_id') or contract.SupplierID) %}selected{% endif %}>Оберіть постачальника...</option>
+                                {% for supplier in all_suppliers %}
+                                <option value="{{ supplier.SupplierID }}"
+                                        {% if (form_data.get('supplier_id')|string == supplier.SupplierID|string) or (not form_data and contract.SupplierID|string == supplier.SupplierID|string) %}selected{% endif %}>
+                                    {{ supplier.SupplierName }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status_id" class="form-label">Статус <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status_id" name="status_id" required>
+                                <option value="" disabled {% if not (form_data.get('status_id') or contract.SupplyStatusID) %}selected{% endif %}>Оберіть статус...</option>
+                                {% for status_item in all_statuses %}
+                                <option value="{{ status_item.SupplyStatusID }}"
+                                        {% if (form_data.get('status_id')|string == status_item.SupplyStatusID|string) or (not form_data and contract.SupplyStatusID|string == status_item.SupplyStatusID|string) %}selected{% endif %}>
+                                    {{ status_item.StatusName }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Опис (коментар)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ form_data.get('description', contract.Description or '') }}</textarea>
+                        </div>
+
+                        <hr>
+                        <h6>Товари в поставці:</h6>
+                        <div id="supply-details-container" class="mb-3">
+                            {# тут або таблиця, або повідомлення "Товари ще не додані" #}
+                        </div>
+
+                        <button type="button" id="add-detail-row" class="btn btn-outline-success btn-sm mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"></path>
+                            </svg> Додати товар
+                        </button>
+
+                        {# Шаблон для нового рядка товару #}
+                        <template id="new-detail-row-template">
+                            <tr class="detail-row">
+                                <td>
+                                    <input type="text" class="form-control form-control-sm sku-search"
+                                           placeholder="SKU або назва..."
+                                           data-target-select="new-product-select-{index}">
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm product-select"
+                                            name="new_details-{index}-product_id"
+                                            id="new-product-select-{index}">
+                                        <option value="" selected>Оберіть товар...</option>
+                                        {% for product in all_products %}
+                                        <option value="{{ product.ProductID }}"
+                                                data-sku="{{ product.SKU|lower }}"
+                                                data-name="{{ product.ProductName|lower }}">
+                                            {{ product.ProductName }} (SKU: {{ product.SKU }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="number" class="form-control form-control-sm text-end" name="new_details-{index}-quantity" value="1" min="1" step="1"></td>
+                                <td><input type="text" class="form-control form-control-sm text-end" name="new_details-{index}-unit_price" value="0.00" pattern="^\d*([.,]\d{1,2})?$"></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm py-0 px-1 remove-new-detail-row" title="Видалити цей рядок">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                          <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"></path>
+                                          <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"></path>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <a href="{{ url_for('supplies_bp.supply_details_view', supply_id=contract.SupplyID) }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addDetailRowBtn = document.getElementById('add-detail-row');
+    const detailsContainer = document.getElementById('supply-details-container');
+    const newDetailRowTemplate = document.getElementById('new-detail-row-template');
+    let newDetailIndex = 0;
+
+    // Функція для створення або знаходження таблиці та її tbody
+    function getOrCreateDetailsTableBody() {
+        let table = detailsContainer.querySelector('table');
+        if (!table) {
+            detailsContainer.innerHTML = '';
+            const tableResponsiveDiv = document.createElement('div');
+            tableResponsiveDiv.className = 'table-responsive';
+            table = document.createElement('table');
+            table.className = 'table table-sm';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">SKU (пошук)</th>
+                        <th style="width: 30%;">Товар</th>
+                        <th style="width: 15%;" class="text-end">Кількість</th>
+                        <th style="width: 20%;" class="text-end">Ціна за од. (₴)</th>
+                        <th style="width: 10%;" class="text-center">Видалити</th>
+                    </tr>
+                </thead>
+                <tbody id="details-table-body"></tbody> {# Єдиний tbody для всіх рядків #}
+            `;
+            tableResponsiveDiv.appendChild(table);
+            detailsContainer.appendChild(tableResponsiveDiv);
+        }
+        return table.querySelector('tbody#details-table-body') || table.querySelector('tbody');
+    }
+
+    // Функція для ініціалізації пошуку SKU для конкретного рядка
+    function initSkuSearchForRow(rowElement) {
+        const skuInput = rowElement.querySelector('.sku-search');
+        const targetSelectId = skuInput.dataset.targetSelect;
+        const productSelect = document.getElementById(targetSelectId);
+
+        if (skuInput && productSelect) {
+            skuInput.addEventListener('input', function () {
+                const searchTerm = this.value.toLowerCase().trim();
+                let firstVisibleOptionValue = null;
+                let hasVisibleOptions = false;
+
+                Array.from(productSelect.options).forEach(option => {
+                    if (option.value === "") { // Опція "Оберіть товар..."
+                        option.style.display = '';
+                        return;
+                    }
+                    const sku = option.dataset.sku || '';
+                    const name = option.dataset.name || '';
+
+                    if (searchTerm === "" || sku.includes(searchTerm) || name.includes(searchTerm)) {
+                        option.style.display = '';
+                        hasVisibleOptions = true;
+                        if (firstVisibleOptionValue === null && option.value !== "") {
+                            firstVisibleOptionValue = option.value;
+                        }
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+
+                if (!hasVisibleOptions && searchTerm !== "") {
+                     productSelect.value = "";
+                }
+            });
+        }
+    }
+
+    // Ініціалізація для існуючих рядків
+    const initialDetails = {{ contract.details|length or 0 }};
+    if (initialDetails > 0) {
+        const initialTbody = getOrCreateDetailsTableBody();
+        // існуючі деталі
+        const existingRowsHtml = `{% for detail in contract.details %}
+            <tr id="detail-row-{{ detail.SupplyDetailID }}" class="detail-row">
+                <td>
+                    <input type="text" class="form-control form-control-sm sku-search"
+                           placeholder="SKU або назва..."
+                           data-target-select="product-select-{{ detail.SupplyDetailID }}">
+                </td>
+                <td>
+                    <select class="form-select form-select-sm product-select"
+                            name="details-{{ detail.SupplyDetailID }}-product_id"
+                            id="product-select-{{ detail.SupplyDetailID }}">
+                        <option value="">Оберіть товар...</option>
+                        {% for product in all_products %}
+                        <option value="{{ product.ProductID }}"
+                                data-sku="{{ product.SKU|lower }}"
+                                data-name="{{ product.ProductName|lower }}"
+                                {% if detail.ProductID == product.ProductID %}selected{% endif %}>
+                            {{ product.ProductName }} (SKU: {{ product.SKU }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="number" class="form-control form-control-sm text-end" name="details-{{ detail.SupplyDetailID }}-quantity" value="{{ detail.Quantity }}" min="0" step="1"></td>
+                <td><input type="text" class="form-control form-control-sm text-end" name="details-{{ detail.SupplyDetailID }}-unit_price" value="{{ "%.2f"|format(detail.UnitPrice|float) if detail.UnitPrice is not none else '' }}" pattern="^\\d*([.,]\\d{1,2})?$"></td>
+                <td class="text-center">
+                    <input class="form-check-input" type="checkbox" name="details-{{ detail.SupplyDetailID }}-delete" title="Позначити для видалення">
+                </td>
+            </tr>
+        {% endfor %}`;
+        initialTbody.innerHTML = existingRowsHtml;
+
+        document.querySelectorAll('#details-table-body .detail-row').forEach(row => {
+            initSkuSearchForRow(row);
+        });
+    } else {
+        // Якщо деталей немає
+        detailsContainer.innerHTML = '<p class="text-muted" id="no-details-message">Товари до цієї поставки ще не додані.</p>';
+    }
+
+
+    if (addDetailRowBtn) {
+        addDetailRowBtn.addEventListener('click', function () {
+            const targetTbody = getOrCreateDetailsTableBody();
+
+            const templateContent = newDetailRowTemplate.innerHTML.replace(/{index}/g, newDetailIndex);
+            const newRow = document.createElement('tr');
+            newRow.className = 'detail-row';
+            newRow.innerHTML = templateContent;
+            targetTbody.appendChild(newRow);
+
+            initSkuSearchForRow(newRow);
+
+            newRow.querySelector('.remove-new-detail-row').addEventListener('click', function() {
+                this.closest('tr').remove();
+                // чи залишилися ще рядки деталей (що існують або нові)
+                if (!detailsContainer.querySelector('.detail-row')) {
+                    detailsContainer.innerHTML = '<p class="text-muted" id="no-details-message">Товари до цієї поставки ще не додані.</p>';
+                }
+            });
+            newDetailIndex++;
+        });
+    }
+});
+</script>
+{% endblock %}

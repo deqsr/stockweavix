@@ -7,53 +7,28 @@
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Custom styles -->
-  <style>
-
-    body {
-      padding-top: 56px;
-    }
-
-    .sidebar {
-      width: 250px;
-      position: fixed;
-      top: 56px;
-      bottom: 0;
-      left: 0;
-      padding: 1rem;
-      background-color: #f8f9fa;
-    }
-
-    .content-wrapper {
-      margin-left: 250px;
-      padding: 1rem;
-    }
-
-    .card-dashboard {
-      border-radius: 0.75rem;
-      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-    }
-
-    .navbar {
-      padding-left: calc(1.2rem);
-    }
-
-    .navbar-brand {
-      margin: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">StockWeavix</a>
+      <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">StockWeavix</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="/">Головна</a></li>
-          <li class="nav-item"><a class="nav-link" href="/inventory">Товари</a></li>
+          <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('main.dashboard') }}">Головна</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('inv_bp.inventory_list') }}">Товари</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link {% if request.endpoint.startswith('supplies_bp.') %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
+          </li>
+
           <li class="nav-item"><a class="nav-link" href="#">Допомога</a></li>
         </ul>
         <form class="d-flex ms-3">
@@ -66,9 +41,11 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <ul class="nav flex-column">
-      <li class="nav-item"><a class="nav-link active" href="/">Головна</a></li>
-      <li class="nav-item"><a class="nav-link" href="/inventory">Товари на складі</a></li>
-      <li class="nav-item"><a class="nav-link" href="#">Постачання</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">Головна</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'inv_bp.inventory_list' %}active{% endif %}" href="{{ url_for('inv_bp.inventory_list') }}">Товари на складі</a></li>
+      <li class="nav-item">
+              <a class="nav-link {% if request.endpoint.startswith('supplies_bp.') %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
+      </li>
     </ul>
   </div>
 
@@ -79,5 +56,10 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Custom JS -->
+  <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+  {% block extra_js %}{% endblock %} {# Для специфічного JS #}
 </body>
 </html>

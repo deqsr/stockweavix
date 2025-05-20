@@ -3,73 +3,133 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
+  <!-- KPI Row -->
   <div class="row g-3">
-    <!-- KPI -->
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
-        <h6 class="text-muted">Нові замовлення</h6>
-        <h2>{{ new_orders }}</h2>
-        <small class="text-success">{{ order_growth }} за місяць</small>
+        <h6 class="text-muted">Нові замовлення (за місяць KPI)</h6>
+        <h2>{{ curr_orders_kpi }}</h2>
+        <small class="{{ order_growth_class }}">{{ order_growth_text }}</small>
       </div>
     </div>
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
-        <h6 class="text-muted">Продажі</h6>
-        <h2>{{ total_sales }} ₴</h2>
-        <small class="text-success">{{ sales_growth }} за місяць</small>
+        <h6 class="text-muted">Продажі (за місяць KPI)</h6>
+        <h2>{{ curr_sales_kpi }} ₴</h2>
+        <small class="{{ sales_growth_class }}">{{ sales_growth_text }}</small>
       </div>
     </div>
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
-        <h6 class="text-muted">Загальна кількість замовлень</h6>
-        <h2>{{ total_orders }}</h2>
-        <small class="text-success"><br></small>
+        <h6 class="text-muted">Загальна кількість замовлень (всього)</h6>
+        <h2>{{ total_orders_all_time }}</h2>
+        <small class="text-secondary"><br></small>
       </div>
     </div>
   </div>
 
-  <!-- Таблиці -->
+  <!-- Chart and Filters Section -->
+  <div class="row mt-4">
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-header">Динаміка продажів та кількості</div>
+        <div class="card-body">
+          <canvas id="salesAndQuantityChart" style="min-height: 300px; max-height: 400px;"></canvas>
+        </div>
+        <div class="card-footer filters-card p-3">
+          <form id="chartFilterForm" method="GET" action="{{ url_for('main.dashboard') }}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+              <label for="start_date_chart" class="form-label">Початкова дата:</label>
+              <input type="date" class="form-control form-control-sm filter-input" id="start_date_chart" name="start_date_chart" value="{{ start_date_chart_form }}">
+            </div>
+            <div class="col-md-3">
+              <label for="end_date_chart" class="form-label">Кінцева дата:</label>
+              <input type="date" class="form-control form-control-sm filter-input" id="end_date_chart" name="end_date_chart" value="{{ end_date_chart_form }}">
+            </div>
+            <div class="col-md-2">
+              <label for="category_id_chart" class="form-label">Категорія:</label>
+              <select class="form-select form-select-sm filter-input" id="category_id_chart" name="category_id_chart">
+                <option value="">Всі категорії</option>
+                {% for category in categories_filter_data %}
+                <option value="{{ category.CategoryID }}" {% if category.CategoryID == selected_category_id_chart_form %}selected{% endif %}>
+                  {{ category.CategoryName }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="manufacturer_id_chart" class="form-label">Виробник:</label>
+              <select class="form-select form-select-sm filter-input" id="manufacturer_id_chart" name="manufacturer_id_chart">
+                <option value="">Всі виробники</option>
+                {% for manufacturer in manufacturers_filter_data %}
+                <option value="{{ manufacturer.ManufacturerID }}" {% if manufacturer.ManufacturerID == selected_manufacturer_id_chart_form %}selected{% endif %}>
+                  {{ manufacturer.ManufacturerName }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button type="button" id="resetChartFilters" class="btn btn-outline-secondary btn-sm w-100">За замовчуванням</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Tables: Recent Supplies and Zone Occupancy -->
   <div class="row mt-4 g-3">
-    <!-- Поставки -->
     <div class="col-md-6">
       <div class="card shadow-sm">
-        <div class="card-header">Прийом поставок</div>
-        <div class="card-body p-0">
-          <table class="table table-fixed mb-0">
-            <thead class="table-light">
-              <tr><th>ID</th><th>Дата</th><th>Статус</th><th>Δ%</th></tr>
+        <div class="card-header">Прийом постачань (останні 7)</div>
+        <div class="card-body px-3" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-fixed table-sm table-hover mb-0">
+            <thead class="table-light sticky-top">
+              <tr><th>ID</th><th>Дата</th><th>Статус</th><th class="text-end">Δ Ціни</th></tr>
             </thead>
             <tbody>
-              {% for s in supplies %}
+              {% for s in supplies_table_data %}
               <tr>
                 <td>{{ s.id }}</td>
                 <td>{{ s.date }}</td>
-                <td>{{ s.status }}</td>
-                <td>{{ s.change }}</td>
+                <td><span class="badge {{ s.status_class }}">{{ s.status }}</span></td>
+                <td class="text-end {{ s.change_class }}">{{ s.change_text }}</td>
               </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center py-3">Немає даних про постачання</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
     </div>
-    <!-- Зони -->
     <div class="col-md-6">
       <div class="card shadow-sm">
-        <div class="card-header">Рівень завантаження зон</div>
-        <div class="card-body p-0">
-          <table class="table table-fixed mb-0">
-            <thead class="table-light">
-              <tr><th>Зона</th><th>Статус</th><th>К-сть</th><th>% завантаження</th></tr>
+        <div class="card-header">Рівень завантаження зон (топ 7)</div>
+         <div class="card-body px-3" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-fixed table-sm table-hover mb-0">
+            <thead class="table-light sticky-top">
+              <tr><th>Зона</th><th>Всього місць</th><th>Зайнято місць</th><th>% Завантаження</th></tr>
             </thead>
             <tbody>
-              {% for z in zones %}
+              {% for z in zones_table_data %}
               <tr>
                 <td>{{ z.zone }}</td>
-                <td>{{ z.status }}</td>
-                <td>{{ z.quantity }}</td>
-                <td>{{ z.used_pct }}</td>
+                <td>{{ z.total_locations }}</td>
+                <td>{{ z.occupied_locations }}</td>
+                <td>
+                    <div class="progress" style="height: 20px;" title="{{ z.used_pct_text }}">
+                        <div class="progress-bar {% if z.used_pct_val >= 80 %}bg-danger{% elif z.used_pct_val >= 50 %}bg-warning{% else %}bg-success{% endif %}"
+                             role="progressbar" style="width: {{ z.used_pct_val }}%;"
+                             aria-valuenow="{{ z.used_pct_val }}" aria-valuemin="0" aria-valuemax="100">
+                             {{ z.used_pct_text }}
+                        </div>
+                    </div>
+                </td>
               </tr>
+              {% else %}
+               <tr><td colspan="4" class="text-center py-3">Немає даних про зони</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -78,35 +138,25 @@
     </div>
   </div>
 
-  <!-- Графік продажів -->
-  <div class="row mt-4">
-    <div class="col">
-      <div class="card shadow-sm p-3">
-        <div class="card-header">Графік продажів (30 днів)</div>
-        <div class="card-body">
-          <canvas id="salesChart" height="120"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Топ міст -->
+  <!-- Top Cities Table -->
   <div class="row mt-4">
     <div class="col">
       <div class="card shadow-sm">
-        <div class="card-header">Топ міст за рік</div>
-        <div class="card-body p-0">
-          <table class="table table-fixed mb-0">
-            <thead class="table-light">
-              <tr><th>Місто</th><th>Замовлень</th><th>Δ%</th></tr>
+        <div class="card-header">Топ міст (за останній рік, Δ% до попереднього року)</div>
+        <div class="card-body px-3" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-fixed table-sm table-hover mb-0">
+            <thead class="table-light sticky-top">
+              <tr><th>Місто</th><th class="text-center">Замовлень за рік</th><th class="text-end">Δ% (до попер. року)</th></tr>
             </thead>
             <tbody>
-              {% for c in top_cities %}
+              {% for c in top_cities_table_data %}
               <tr>
                 <td>{{ c.city }}</td>
-                <td>{{ c.cnt }}</td>
-                <td>{{ c.change }}</td>
+                <td class="text-center">{{ c.cnt }}</td>
+                <td class="text-end {{ c.change_class }}">{{ c.change_text }}</td>
               </tr>
+              {% else %}
+              <tr><td colspan="3" class="text-center py-3">Немає даних по містах</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -115,27 +165,204 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block extra_js %}
 <script>
-  const ctx = document.getElementById('salesChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: {{ chart_labels|tojson }},
-      datasets: [{
-        label: 'Сума продажів',
-        data: {{ chart_values|tojson }},
-        fill: false,
-        tension: 0.2,
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true } }
+document.addEventListener('DOMContentLoaded', function () {
+    // Елементи форми фільтрів
+    const chartFilterForm = document.getElementById('chartFilterForm'); // Сама форма
+    const filterInputs = chartFilterForm.querySelectorAll('.filter-input'); // Всі поля з класом filter-input
+    const resetChartFiltersButton = document.getElementById('resetChartFilters');
+
+    const startDateInput = document.getElementById('start_date_chart');
+    const endDateInput = document.getElementById('end_date_chart');
+    const categoryInput = document.getElementById('category_id_chart');
+    const manufacturerInput = document.getElementById('manufacturer_id_chart');
+
+    let salesAndQuantityChartInstance = null; // екземпляр графіка
+
+    // Функція для оновлення графіка через AJAX
+    function updateChartWithFilters() {
+        // поточні значення фільтрів
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const categoryId = categoryInput.value;
+        const manufacturerId = manufacturerInput.value;
+
+        // URL для AJAX-запиту до API endpoint
+        const apiUrl = `{{ url_for('main.api_chart_data') }}?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&category_id=${encodeURIComponent(categoryId)}&manufacturer_id=${encodeURIComponent(manufacturerId)}`;
+
+        // Робимо fetch запит
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (salesAndQuantityChartInstance && data) {
+                    // дані існуючого графіка
+                    salesAndQuantityChartInstance.data.labels = data.labels;
+                    salesAndQuantityChartInstance.data.datasets[0].data = data.sales_values; // Сума продажів
+                    salesAndQuantityChartInstance.data.datasets[1].data = data.quantity_values; // Кількість
+                    salesAndQuantityChartInstance.update();
+                } else if (!data) {
+                    console.error('Received empty data from API for chart.');
+                }
+            })
+            .catch(error => console.error('Error fetching or parsing chart data:', error));
     }
-  });
+
+    // обробники подій до полів фільтра
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function () {
+            updateChartWithFilters(); //  функція оновлення через AJAX
+        });
+    });
+
+    // кнопки за замовчуванням
+    if (resetChartFiltersButton) {
+        resetChartFiltersButton.addEventListener('click', function () {
+            // значення дефолтні (з Flask)
+            startDateInput.value = "{{ default_start_date_chart_str }}";
+            endDateInput.value = "{{ default_end_date_chart_str }}";
+            categoryInput.value = "";
+            manufacturerInput.value = "";
+
+            updateChartWithFilters();
+        });
+    }
+
+    // Ініціалізація графіка Chart.js
+    const ctxSalesQty = document.getElementById('salesAndQuantityChart');
+    if (ctxSalesQty) {
+        salesAndQuantityChartInstance = new Chart(ctxSalesQty.getContext('2d'), {
+            type: 'line', // Тип графіка
+            data: {
+                labels: {{ chart_labels|tojson }},       // Початкові мітки осі X
+                datasets: [
+                    {
+                        label: 'Сума продажів (₴)',
+                        data: {{ chart_sales_values|tojson }}, // Початкові дані для продажів
+                        borderColor: 'rgba(54, 162, 235, 1)', // Колір лінії
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)', // Колір під лінією (якщо fill: true)
+                        yAxisID: 'ySales', // Прив'язка до осі Y для продажів
+                        tension: 0.1,      // Плавність лінії
+                        fill: false,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Кількість продано (од.)',
+                        data: {{ chart_quantity_values|tojson }}, // Початкові дані для кількості
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        yAxisID: 'yQuantity', // Прив'язка до осі Y для кількості
+                        tension: 0.1,
+                        fill: false,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true, // Адаптивність
+                maintainAspectRatio: false, // висота через CSS
+                scales: {
+                    ySales: { // Налаштування лівої осі Y (для продажів)
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Сума продажів (₴)',
+                            font: { weight: 'bold' }
+                        },
+                        grid: {
+                            drawOnChartArea: true, // Основні лінії сітки
+                        },
+                        ticks: { // Форматування значень на осі
+                            callback: function(value, index, ticks) {
+                                return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(value) + ' ₴';
+                            }
+                        }
+                    },
+                    yQuantity: { // Налаштування правої осі Y (для кількості)
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Кількість (од.)',
+                            font: { weight: 'bold' }
+                        },
+                        grid: {
+                            drawOnChartArea: false, // прибрати лінії сітки, щоб уникнути накладання
+                        },
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                if (Number.isInteger(value)) {
+                                   return value + ' од.';
+                                }
+                                return null; // Не показувати нецілі значення
+                            },
+                            stepSize: Math.max(1, Math.ceil(Math.max(...({{ chart_quantity_values|tojson }})) / 10)) // Динамічний крок, щоб було не більше ~10 міток
+                        }
+                    },
+                    x: { // Налаштування осі X (дати)
+                        title: {
+                            display: true,
+                            text: 'Дата',
+                            font: { weight: 'bold' }
+                        },
+                        grid: {
+                            display: false // Прибираємо вертикальні лінії сітки
+                        }
+                    }
+                },
+                plugins: { // Налаштування плагінів (тултіпи, легенда)
+                    tooltip: {
+                        mode: 'index', // Показувати тултіпи для всіх датасетів при наведенні на точку X
+                        intersect: false,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: { weight: 'bold'},
+                        callbacks: { // Кастомне форматування
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataset.yAxisID === 'ySales') {
+                                        label += new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH' }).format(context.parsed.y);
+                                    } else {
+                                        label += context.parsed.y + ' од.';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 10,
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                interaction: { // Налаштування взаємодії з графіком
+                    mode: 'index',
+                    intersect: false,
+                }
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

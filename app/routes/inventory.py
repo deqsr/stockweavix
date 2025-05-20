@@ -1,27 +1,43 @@
-from flask import Blueprint, render_template, request
-from app.models import Inventory, Product, ProductCategory
+from flask import Blueprint, render_template, request, url_for
+from app.models import db, Inventory, Product, ProductCategory, Manufacturer, Location, ZoneRow, Zone, ZoneSection
+from sqlalchemy.orm import joinedload
 
 
-inv_bp = Blueprint('inventory', __name__)
+inv_bp = Blueprint('inv_bp', __name__)
 
-@inv_bp.route('/', methods=['GET'])
-def list_inventory():
-    cat_id = request.args.get('category', type=int)
-    categories = ProductCategory.query.order_by(ProductCategory.CategoryName).all()
 
-    # Базовий запит — приєднуємо таблицю Products
-    query = Inventory.query.join(Product, Inventory.ProductID == Product.ProductID)
+@inv_bp.route('/')
+def inventory_list():
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Кількість елементів на сторінці
 
-    # Якщо в URL передано category, ставимо WHERE
+    cat_id_str = request.args.get('category_id', '')  # Змінив 'category' на 'category_id'
+    cat_id = int(cat_id_str) if cat_id_str.isdigit() else None
+
+    all_categories_for_filter = ProductCategory.query.order_by(ProductCategory.CategoryName).all()
+
+    query = Inventory.query.options(
+        joinedload(Inventory.product).joinedload(Product.category),  # Завантажуємо товар та його категорію
+        joinedload(Inventory.product).joinedload(Product.manufacturer),  # Завантажуємо виробника товару
+        joinedload(Inventory.location).joinedload(Location.row).joinedload(ZoneRow.zone),
+        # Завантажуємо локацію -> ряд -> зону
+        joinedload(Inventory.location).joinedload(Location.section),
+        joinedload(Inventory.location).joinedload(Location.shelf)
+    )
+
     if cat_id:
-        query = query.filter(Product.ProductCategoryID == cat_id)
+        query = query.join(Product, Inventory.ProductID == Product.ProductID) \
+            .filter(Product.ProductCategoryID == cat_id)
 
-    items = query.all()
+    if not cat_id:  # Якщо фільтра не було, Product ще не приєднаний для сортування
+        query = query.join(Product, Inventory.ProductID == Product.ProductID)
+
+    pagination = query.order_by(Product.ProductName).paginate(page=page, per_page=per_page, error_out=False)
+
 
     return render_template(
         'inventory_list.html',
-        items=items,
-        categories=categories,
-        selected_category=cat_id
+        pagination=pagination,  # Передаємо об'єкт пагінації
+        all_categories_for_filter=all_categories_for_filter,
+        selected_category_id=cat_id
     )
-

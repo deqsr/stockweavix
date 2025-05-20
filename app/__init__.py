@@ -4,6 +4,7 @@ from .config import Config
 from .models import db
 from .routes.inventory import inv_bp
 from .routes.main import main_bp
+from .routes.supplies import supplies_bp
 
 def create_app():
     app = Flask(__name__)
@@ -12,9 +13,10 @@ def create_app():
     # SQLAlchemy + міграції
     db.init_app(app)
     Migrate(app, db)
-
+    print("SQLALCHEMY_ENGINE_OPTIONS in app.config:", app.config.get('SQLALCHEMY_ENGINE_OPTIONS'))
     # blueprints
-    app.register_blueprint(inv_bp, url_prefix='/inventory')
     app.register_blueprint(main_bp)
+    app.register_blueprint(inv_bp, url_prefix='/inventory')
+    app.register_blueprint(supplies_bp, url_prefix='/supplies')
 
     return app
