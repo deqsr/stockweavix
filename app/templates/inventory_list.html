@@ -1,10 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends 'layout.html' %}
+
+{% block title %}Запаси на складі — StockWeavix{% endblock %}
+
+{% block content %}
+  <h2>Запаси на складі</h2>
+
+  <form class="row g-3 mb-4" method="get">
+    <div class="col-auto">
+      <select name="category" class="form-select" onchange="this.form.submit()">
+        <option value="">Всі категорії</option>
+        {% for cat in categories %}
+          <option value="{{ cat.CategoryID }}" {% if selected_category == cat.CategoryID %}selected{% endif %}>
+            {{ cat.CategoryName }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Назва</th>
+        <th>Локація</th>
+        <th>Кількість</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td>{{ item.product.SKU }}</td>
+          <td>{{ item.product.ProductName }}</td>
+          <td>{{ item.location.full_address() }}</td>
+          <td>{{ item.Quantity }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

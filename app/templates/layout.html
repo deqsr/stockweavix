@@ -1,10 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}StockWeavix{% endblock %}</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom styles -->
+  <style>
+    /* Отступ для тела, чтобы не перекрывалось фиксированным навбаром */
+    body {
+      padding-top: 56px;
+    }
+    /* Стили бокового меню */
+    .sidebar {
+      width: 250px;
+      position: fixed;
+      top: 56px;
+      bottom: 0;
+      left: 0;
+      padding: 1rem;
+      background-color: #f8f9fa;
+    }
+    /* Отступ содержимого страницы, учитывая ширину сайдбара */
+    .content-wrapper {
+      margin-left: 250px;
+      padding: 1rem;
+    }
+    /* Стили для карточек на дашборде */
+    .card-dashboard {
+      border-radius: 0.75rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    }
+    /* Профессиональное выравнивание левого отступа логотипа навбара
+       чтобы совпадать с контентом справа и сайдбаром */
+    .navbar {
+      padding-left: calc(1.2rem);
+    }
+    /* Убираем стандартный отступ у .navbar-brand, теперь он будет идти вровень с контентом */
+    .navbar-brand {
+      margin: 0;
+    }
+  </style>
 </head>
 <body>
-$END$
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">StockWeavix</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/">Головна</a></li>
+          <li class="nav-item"><a class="nav-link" href="/inventory">Товари</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">Допомога</a></li>
+        </ul>
+        <form class="d-flex ms-3">
+          <input class="form-control" type="search" placeholder="Пошук">
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <ul class="nav flex-column">
+      <li class="nav-item"><a class="nav-link active" href="/">Головна</a></li>
+      <li class="nav-item"><a class="nav-link" href="/inventory">Товари на складі</a></li>
+      <li class="nav-item"><a class="nav-link" href="#">Постачання</a></li>
+    </ul>
+  </div>
+
+  <!-- Page Content -->
+  <div class="content-wrapper">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

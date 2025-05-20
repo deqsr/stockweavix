@@ -1,10 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends 'layout.html' %}
+{% block title %}Категорія — StockWeavix{% endblock %}
+{% block content %}
+<h2>Додати / Редагувати категорію</h2>
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">Назва категорії</label>
+    <input type="text" name="name" class="form-control" value="{{ category.CategoryName if category else '' }}">
+  </div>
+  <button class="btn btn-primary">Зберегти</button>
+</form>
+{% endblock %}
