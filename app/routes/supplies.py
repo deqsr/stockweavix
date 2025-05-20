@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import or_, desc, func
 from app.models import db, SupplyContract, Supplier, SupplyStatus, Product, SupplyDetail
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, timezone, date
 import decimal
 
@@ -166,48 +166,186 @@ def supply_details_view(supply_id):
 
 @supplies_bp.route('/<int:supply_id>/edit', methods=['GET', 'POST'])
 def edit_supply_contract(supply_id):
-    contract_to_edit = SupplyContract.query.get_or_404(supply_id)
+    # Завжди завантажуємо з selectinload для консистентності та уникнення проблем з сесією
+    contract_to_edit = SupplyContract.query.options(
+        selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
+    ).get_or_404(supply_id)
+
+    all_products_for_form = Product.query.order_by(Product.ProductName).all()
+    all_suppliers_edit = Supplier.query.order_by(Supplier.SupplierName).all()
+    all_statuses_edit = SupplyStatus.query.order_by(SupplyStatus.StatusName).all()
 
     if request.method == 'POST':
-        supplier_id = request.form.get('supplier_id', type=int)
-        status_id = request.form.get('status_id', type=int)
-        description = request.form.get('description', '')
+        # 1. Оновлення основних даних контракту
+        try:
+            supplier_id_form = request.form.get('supplier_id', type=int)
+            status_id_form = request.form.get('status_id', type=int)
 
-        if not supplier_id or not status_id:
-            flash('Постачальник та статус є обов\'язковими полями.', 'warning')
-            all_suppliers_edit = Supplier.query.order_by(Supplier.SupplierName).all()
-            all_statuses_edit = SupplyStatus.query.order_by(SupplyStatus.StatusName).all()
+            if not supplier_id_form or not status_id_form:
+                flash('Постачальник та статус є обов\'язковими полями.', 'warning')
+                # Перезавантажуємо контракт, оскільки сесія може бути змінена до помилки
+                contract_to_edit = SupplyContract.query.options(
+                    selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
+                ).get_or_404(supply_id)
+                return render_template('edit_supply_form.html',
+                                       contract=contract_to_edit,
+                                       all_suppliers=all_suppliers_edit,
+                                       all_statuses=all_statuses_edit,
+                                       all_products=all_products_for_form,
+                                       form_data=request.form), 400
 
+            contract_to_edit.SupplierID = supplier_id_form
+            contract_to_edit.SupplyStatusID = status_id_form
+            contract_to_edit.Description = request.form.get('description', contract_to_edit.Description or '')
+            contract_to_edit.LastUpdated = datetime.now(timezone.utc)
+        except Exception as e:
+            db.session.rollback()  # Відкочуємо зміни, якщо вони були
+            flash(f"Помилка при оновленні даних контракту: {e}", "danger")
+            # Перезавантажуємо контракт після rollback
+            contract_to_edit = SupplyContract.query.options(
+                selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
+            ).get_or_404(supply_id)
             return render_template('edit_supply_form.html',
                                    contract=contract_to_edit,
                                    all_suppliers=all_suppliers_edit,
                                    all_statuses=all_statuses_edit,
-                                   form_data=request.form), 400
+                                   all_products=all_products_for_form,
+                                   form_data=request.form), 500
 
-        contract_to_edit.SupplierID = supplier_id
-        contract_to_edit.SupplyStatusID = status_id
-        contract_to_edit.Description = description
-        contract_to_edit.LastUpdated = datetime.now(timezone.utc)
+        # 2. Обробка існуючих деталей (оновлення або видалення)
+        # ... (Ваш код для обробки існуючих деталей, як у попередній відповіді)
+        existing_details_map = {detail.SupplyDetailID: detail for detail in contract_to_edit.details}
+        form_keys_for_existing_details = [k for k in request.form if k.startswith('details-')]
+        ids_of_details_in_form = set()
+        for key in form_keys_for_existing_details:
+            if key.endswith('-product_id'):
+                try:
+                    detail_id = int(key.split('-')[1]); ids_of_details_in_form.add(detail_id)
+                except (IndexError, ValueError):
+                    continue
+        for detail_id in ids_of_details_in_form:
+            detail_to_process = existing_details_map.get(detail_id)
+            if not detail_to_process: continue
+            prefix = f'details-{detail_id}-'
+            if request.form.get(prefix + 'delete'):
+                db.session.delete(detail_to_process)
+            else:
+                try:
+                    product_id_val = request.form.get(prefix + 'product_id', type=int)
+                    quantity_str = request.form.get(prefix + 'quantity', '0')
+                    unit_price_str = request.form.get(prefix + 'unit_price', '0.00').replace(',', '.')
+                    if not product_id_val: db.session.delete(detail_to_process); flash(
+                        f"Товар для існуючої деталі ID {detail_id} не було обрано, деталь видалено.", "info"); continue
+                    quantity_val = int(quantity_str)
+                    unit_price_val = decimal.Decimal(unit_price_str)
+                    if quantity_val <= 0: db.session.delete(detail_to_process); flash(
+                        f"Кількість для деталі товару ID {product_id_val} (деталь ID {detail_id}) була 0 або менше, деталь видалено.",
+                        "info"); continue
+                    if unit_price_val < decimal.Decimal('0'): unit_price_val = decimal.Decimal('0.00')
+                    detail_to_process.ProductID = product_id_val;
+                    detail_to_process.Quantity = quantity_val;
+                    detail_to_process.UnitPrice = unit_price_val
+                except (ValueError, decimal.InvalidOperation) as e:
+                    db.session.rollback();
+                    flash(f"Некоректні дані для оновлення деталі ID {detail_id}: {e}", "warning")
+                    contract_to_edit = SupplyContract.query.options(
+                        selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
+                    return render_template('edit_supply_form.html', contract=contract_to_edit,
+                                           all_suppliers=all_suppliers_edit, all_statuses=all_statuses_edit,
+                                           all_products=all_products_for_form, form_data=request.form), 400
 
+        # 3. Додавання нових деталей
+        # ... (Ваш код для додавання нових деталей, як у попередній відповіді)
+        new_details_form_data = {}
+        for key, value in request.form.items():
+            if key.startswith('new_details-'):
+                parts = key.split('-');
+                if len(parts) == 3:
+                    index_str, field_name = parts[1], parts[2];
+                    if index_str not in new_details_form_data: new_details_form_data[index_str] = {
+                        '_form_index': index_str}
+                    new_details_form_data[index_str][field_name] = value
+        for _form_idx, data_dict in new_details_form_data.items():
+            product_id_str = data_dict.get('product_id')
+            if not product_id_str or not product_id_str.strip(): continue
+            try:
+                product_id = int(product_id_str);
+                quantity = int(data_dict.get('quantity', '0'));
+                unit_price_str = data_dict.get('unit_price', '0.00').replace(',', '.');
+                unit_price = decimal.Decimal(unit_price_str)
+                if quantity <= 0: continue
+                if unit_price < decimal.Decimal('0'): unit_price = decimal.Decimal('0.00')
+                new_supply_detail = SupplyDetail(SupplyID=contract_to_edit.SupplyID, ProductID=product_id,
+                                                 Quantity=quantity, UnitPrice=unit_price)
+                db.session.add(new_supply_detail)
+            except (ValueError, decimal.InvalidOperation) as e:
+                db.session.rollback();
+                flash(f"Некоректні дані для нового товару (форма індекс {_form_idx}): {e}", "warning")
+                contract_to_edit = SupplyContract.query.options(
+                    selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
+                return render_template('edit_supply_form.html', contract=contract_to_edit,
+                                       all_suppliers=all_suppliers_edit, all_statuses=all_statuses_edit,
+                                       all_products=all_products_for_form, form_data=request.form), 400
+
+        # 4. Перерахунок загальної суми контракту
+        try:
+            db.session.flush()
+            calculated_total_price = decimal.Decimal('0.00')
+            for detail_item in contract_to_edit.details:
+                if detail_item in db.session.deleted: continue
+                if detail_item.Quantity is not None and detail_item.UnitPrice is not None:
+                    qty = decimal.Decimal(str(detail_item.Quantity))
+                    price = decimal.Decimal(str(detail_item.UnitPrice))
+                    calculated_total_price += qty * price
+            contract_to_edit.ContractPrice = calculated_total_price
+        except Exception as e_flush_or_calc:
+            db.session.rollback()
+            flash(f"Помилка під час розрахунку суми: {e_flush_or_calc}", "danger")
+            contract_to_edit = SupplyContract.query.options(
+                selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
+            return render_template('edit_supply_form.html', contract=contract_to_edit, all_suppliers=all_suppliers_edit,
+                                   all_statuses=all_statuses_edit, all_products=all_products_for_form,
+                                   form_data=request.form), 500
+
+        # 5. Зберігаємо всі зміни
         try:
             db.session.commit()
             flash(f'Поставку ID {contract_to_edit.SupplyID} успішно оновлено.', 'success')
-            return redirect(url_for('supplies_bp.supply_details_view', supply_id=contract_to_edit.SupplyID))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Помилка при оновленні поставки: {str(e)}', 'danger')
 
-            all_suppliers_edit = Supplier.query.order_by(Supplier.SupplierName).all()
-            all_statuses_edit = SupplyStatus.query.order_by(SupplyStatus.StatusName).all()
+            # ***** ПОВЕРТАЄМО РЕНДЕРИНГ ТІЄЇ Ж СТОРІНКИ ПІСЛЯ УСПІХУ *****
+            # Перезавантажуємо контракт з БД, щоб відобразити всі остаточні зміни
+            # і щоб деталі були коректно завантажені для шаблону
+            contract_to_edit = SupplyContract.query.options(
+                selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
+            ).get_or_404(supply_id)
+
+            # Формуємо дані для форми, щоб поля відображали збережені значення
+            form_data_after_save = {
+                'supplier_id': contract_to_edit.SupplierID,
+                'status_id': contract_to_edit.SupplyStatusID,
+                'description': contract_to_edit.Description or "",
+            }
+            # Існуючі деталі будуть зарендерені з contract_to_edit.details в шаблоні
             return render_template('edit_supply_form.html',
                                    contract=contract_to_edit,
                                    all_suppliers=all_suppliers_edit,
                                    all_statuses=all_statuses_edit,
+                                   all_products=all_products_for_form,
+                                   form_data=form_data_after_save)  # Передаємо оновлені дані для полів форми
+
+        except Exception as e_commit:
+            db.session.rollback()
+            flash(f'Помилка під час збереження змін до БД: {e_commit}', 'danger')
+            contract_to_edit = SupplyContract.query.options(
+                selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
+            return render_template('edit_supply_form.html',
+                                   contract=contract_to_edit,
+                                   all_suppliers=all_suppliers_edit,
+                                   all_statuses=all_statuses_edit,
+                                   all_products=all_products_for_form,
                                    form_data=request.form)
 
-
-    all_suppliers_edit = Supplier.query.order_by(Supplier.SupplierName).all()
-    all_statuses_edit = SupplyStatus.query.order_by(SupplyStatus.StatusName).all()
+    # GET-запит
     form_data_get = {
         'supplier_id': contract_to_edit.SupplierID,
         'status_id': contract_to_edit.SupplyStatusID,
@@ -217,4 +355,5 @@ def edit_supply_contract(supply_id):
                            contract=contract_to_edit,
                            all_suppliers=all_suppliers_edit,
                            all_statuses=all_statuses_edit,
+                           all_products=all_products_for_form,
                            form_data=form_data_get)
