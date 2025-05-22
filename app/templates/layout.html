@@ -28,7 +28,12 @@
           <li class="nav-item">
               <a class="nav-link {% if request.endpoint.startswith('supplies_bp.') %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
           </li>
-
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint.startswith('orders_bp.') %}active{% endif %}"
+                   href="{{ url_for('orders_bp.list_orders') }}">
+                   Замовлення
+                </a>
+            </li>
           <li class="nav-item"><a class="nav-link" href="#">Допомога</a></li>
         </ul>
         <form class="d-flex ms-3">
@@ -46,6 +51,12 @@
       <li class="nav-item">
               <a class="nav-link {% if request.endpoint.startswith('supplies_bp.') %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
       </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.endpoint.startswith('orders_bp.') %}active{% endif %}"
+               href="{{ url_for('orders_bp.list_orders') }}">
+               Замовлення
+            </a>
+        </li>
     </ul>
   </div>
 
@@ -60,6 +71,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <!-- Custom JS -->
   <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-  {% block extra_js %}{% endblock %} {# Для специфічного JS #}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

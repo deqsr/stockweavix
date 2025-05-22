@@ -28,7 +28,7 @@
     </div>
   </div>
 
-  <!-- Chart and Filters Section -->
+  <!-- Chart and Filters -->
   <div class="row mt-4">
     <div class="col">
       <div class="card shadow-sm">
@@ -78,7 +78,7 @@
   </div>
 
 
-  <!-- Tables: Recent Supplies and Zone Occupancy -->
+  <!-- Recent Supplies and Zone Occupancy -->
   <div class="row mt-4 g-3">
     <div class="col-md-6">
       <div class="card shadow-sm">
@@ -182,9 +182,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let salesAndQuantityChartInstance = null; // екземпляр графіка
 
-    // Функція для оновлення графіка через AJAX
+    // оновлення графіка через AJAX
     function updateChartWithFilters() {
-        // поточні значення фільтрів
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
         const categoryId = categoryInput.value;
@@ -205,8 +204,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (salesAndQuantityChartInstance && data) {
                     // дані існуючого графіка
                     salesAndQuantityChartInstance.data.labels = data.labels;
-                    salesAndQuantityChartInstance.data.datasets[0].data = data.sales_values; // Сума продажів
-                    salesAndQuantityChartInstance.data.datasets[1].data = data.quantity_values; // Кількість
+                    salesAndQuantityChartInstance.data.datasets[0].data = data.sales_values;
+                    salesAndQuantityChartInstance.data.datasets[1].data = data.quantity_values;
                     salesAndQuantityChartInstance.update();
                 } else if (!data) {
                     console.error('Received empty data from API for chart.');
@@ -218,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // обробники подій до полів фільтра
     filterInputs.forEach(input => {
         input.addEventListener('change', function () {
-            updateChartWithFilters(); //  функція оновлення через AJAX
+            updateChartWithFilters(); //  оновлення через AJAX
         });
     });
 
@@ -247,9 +246,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         label: 'Сума продажів (₴)',
                         data: {{ chart_sales_values|tojson }}, // Початкові дані для продажів
                         borderColor: 'rgba(54, 162, 235, 1)', // Колір лінії
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)', // Колір під лінією (якщо fill: true)
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
                         yAxisID: 'ySales', // Прив'язка до осі Y для продажів
-                        tension: 0.1,      // Плавність лінії
+                        tension: 0.1,
                         fill: false,
                         pointRadius: 3,
                         pointHoverRadius: 5
@@ -268,8 +267,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 ]
             },
             options: {
-                responsive: true, // Адаптивність
-                maintainAspectRatio: false, // висота через CSS
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     ySales: { // Налаштування лівої осі Y (для продажів)
                         type: 'linear',
@@ -301,14 +300,14 @@ document.addEventListener('DOMContentLoaded', function () {
                             font: { weight: 'bold' }
                         },
                         grid: {
-                            drawOnChartArea: false, // прибрати лінії сітки, щоб уникнути накладання
+                            drawOnChartArea: false,
                         },
                         ticks: {
                             callback: function(value, index, ticks) {
                                 if (Number.isInteger(value)) {
                                    return value + ' од.';
                                 }
-                                return null; // Не показувати нецілі значення
+                                return null;
                             },
                             stepSize: Math.max(1, Math.ceil(Math.max(...({{ chart_quantity_values|tojson }})) / 10)) // Динамічний крок, щоб було не більше ~10 міток
                         }
@@ -320,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             font: { weight: 'bold' }
                         },
                         grid: {
-                            display: false // Прибираємо вертикальні лінії сітки
+                            display: false
                         }
                     }
                 },

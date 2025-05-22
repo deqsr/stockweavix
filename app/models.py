@@ -18,7 +18,7 @@ class City(db.Model):
     __tablename__ = 'Cities'
     __table_args__ = (
         db.PrimaryKeyConstraint('CityID', name='PK__Cities__F2D21A96E70C87F2'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     CityID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -32,7 +32,7 @@ class Client(db.Model):
     __tablename__ = 'Clients'
     __table_args__ = (
         db.PrimaryKeyConstraint('ClientID', name='PK__Clients__E67E1A04246819A8'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     ClientID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -51,7 +51,7 @@ class Manufacturer(db.Model):
     __tablename__ = 'Manufacturers'
     __table_args__ = (
         db.PrimaryKeyConstraint('ManufacturerID', name='PK__Manufact__357E5CA10335A6E8'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     ManufacturerID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -66,7 +66,7 @@ class OrderStatus(db.Model):
     __tablename__ = 'OrderStatuses'
     __table_args__ = (
         db.PrimaryKeyConstraint('OrderStatusID', name='PK__OrderSta__BC674F4139D5CCFE'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     OrderStatusID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -78,7 +78,7 @@ class Position(db.Model):
     __tablename__ = 'Positions'
     __table_args__ = (
         db.PrimaryKeyConstraint('PositionID', name='PK__Position__60BB9A596E5A2324'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     PositionID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -89,7 +89,7 @@ class ProductCategory(db.Model):
     __tablename__ = 'ProductCategories'
     __table_args__ = (
         db.PrimaryKeyConstraint('CategoryID', name='PK__ProductC__19093A2BC48B73DF'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     CategoryID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -104,7 +104,7 @@ class Supplier(db.Model):
     __tablename__ = 'Suppliers'
     __table_args__ = (
         db.PrimaryKeyConstraint('SupplierID', name='PK__Supplier__4BE66694CE91E7F7'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     SupplierID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -123,7 +123,7 @@ class SupplyStatus(db.Model): # Змінив SupplyStatuses на SupplyStatus
     __tablename__ = 'SupplyStatuses'
     __table_args__ = (
         db.PrimaryKeyConstraint('SupplyStatusID', name='PK__Contract__96D70656FDDE505B'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     SupplyStatusID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -136,7 +136,7 @@ class Warehouse(db.Model):
     __tablename__ = 'Warehouses'
     __table_args__ = (
         db.PrimaryKeyConstraint('WarehouseID', name='PK__Warehous__2608AFD922FDC967'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     WarehouseID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -155,7 +155,7 @@ class ZoneSection(db.Model): # Змінив ZoneSections на ZoneSection
     __table_args__ = (
         db.PrimaryKeyConstraint('SectionID', name='PK__ZoneSect__80EF0892ED46AC0D'),
         db.Index('UQ__ZoneSect__B6D6EE018FE38E67', 'SectionNumber', unique=True),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     SectionID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -168,7 +168,7 @@ class ZoneShelf(db.Model): # Змінив ZoneShelves на ZoneShelf
     __table_args__ = (
         db.PrimaryKeyConstraint('ShelfID', name='PK__ZoneShel__DBD04F27FA0BAB71'),
         db.Index('UQ__ZoneShel__AFFEC82EC9B3E5AC', 'ShelfLevel', unique=True),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     ShelfID: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -179,15 +179,15 @@ class ZoneShelf(db.Model): # Змінив ZoneShelves на ZoneShelf
 class Employee(db.Model):
     __tablename__ = 'Employees'
     __table_args__ = (
-        db.ForeignKeyConstraint(['PositionID'], ['Belteh.Positions.PositionID'], name='FK_Employees_Positions'),
-        db.ForeignKeyConstraint(['WarehouseID'], ['Belteh.Warehouses.WarehouseID'], name='FK_Employees_Warehouses'),
+        db.ForeignKeyConstraint(['PositionID'], ['StockWeavix.Positions.PositionID'], name='FK_Employees_Positions'),
+        db.ForeignKeyConstraint(['WarehouseID'], ['StockWeavix.Warehouses.WarehouseID'], name='FK_Employees_Warehouses'),
         db.PrimaryKeyConstraint('EmployeeID', name='PK__Employee__7AD04FF178670A77'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     EmployeeID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    PositionID: Mapped[int] = mapped_column(ForeignKey('Belteh.Positions.PositionID'))
-    WarehouseID: Mapped[int] = mapped_column(ForeignKey('Belteh.Warehouses.WarehouseID'))
+    PositionID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Positions.PositionID'))
+    WarehouseID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Warehouses.WarehouseID'))
     EmployeeLastName: Mapped[str] = mapped_column(String(255))
     EmployeeFirstName: Mapped[str] = mapped_column(String(255))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
@@ -200,49 +200,50 @@ class Employee(db.Model):
     position: Mapped[Position] = relationship('Position', back_populates='employees')
     warehouse: Mapped[Warehouse] = relationship('Warehouse', back_populates='employees')
 
-class Order(db.Model): # Змінив Orders на Order
+class Order(db.Model):
     __tablename__ = 'Orders'
-    __table_args__ = (
-        db.ForeignKeyConstraint(['CityID'], ['Belteh.Cities.CityID'], name='FK_Orders_Cities'),
-        db.ForeignKeyConstraint(['ClientID'], ['Belteh.Clients.ClientID'], name='FK_Orders_Clients'),
-        db.ForeignKeyConstraint(['OrderStatusID'], ['Belteh.OrderStatuses.OrderStatusID'], name='FK_Orders_OrderStatuses'),
-        db.PrimaryKeyConstraint('OrderID', name='PK_Orders_OrderID'),
-        {'schema': 'Belteh'}
-    )
-
     OrderID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    OrderDate: Mapped[date] = mapped_column(Date) # Використовуємо date з datetime
-    OrderStatusID: Mapped[int] = mapped_column(ForeignKey('Belteh.OrderStatuses.OrderStatusID'))
+    ClientID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Clients.ClientID'), nullable=True)
+    CityID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Cities.CityID'), nullable=True) # Якщо є
+    OrderDate: Mapped[date] = mapped_column(Date, default=date.today) # Поточна дата за замовчуванням
+    OrderStatusID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.OrderStatuses.OrderStatusID'))
+    OrderTotal: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True, default=0.00) # Додаємо поле для суми
+    Description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ShippingAddress: Mapped[str | None] = mapped_column(String(500), nullable=True) # Додамо адресу доставки
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now)
     LastUpdated: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now, onupdate=default_utc_now)
-    ClientID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Clients.ClientID'), nullable=True)
-    CityID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Cities.CityID'), nullable=True)
-    PaymentDate: Mapped[date | None] = mapped_column(Date, nullable=True)
-    Address: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    Description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    city: Mapped[City | None] = relationship('City', back_populates='orders')
-    client: Mapped[Client | None] = relationship('Client', back_populates='orders')
-    status: Mapped[OrderStatus] = relationship('OrderStatus', back_populates='orders')
-    items: Mapped[list[OrderItem]] = relationship('OrderItem', back_populates='order') # Буде додано, коли визначимо OrderItem
+    client: Mapped[Client | None] = relationship(back_populates='orders')
+    status: Mapped[OrderStatus] = relationship(back_populates='orders')
+    city: Mapped[City | None] = relationship(back_populates='orders') # Якщо є
+    items: Mapped[list['OrderItem']] = relationship(back_populates='order', cascade="all, delete-orphan")
+
+    # Метод для перерахунку суми замовлення (приклад)
+    def calculate_total(self):
+        total = decimal.Decimal('0.00')
+        for item in self.items:
+            if item.Quantity and item.UnitPrice:
+                total += decimal.Decimal(str(item.Quantity)) * decimal.Decimal(str(item.UnitPrice))
+        self.OrderTotal = total
+        return total
 
 class Product(db.Model):
     __tablename__ = 'Products'
     __table_args__ = (
-        db.ForeignKeyConstraint(['ManufacturerID'], ['Belteh.Manufacturers.ManufacturerID'], name='FK_Products_Manufacturers'),
-        db.ForeignKeyConstraint(['ProductCategoryID'], ['Belteh.ProductCategories.CategoryID'], name='FK_Products_ProductCategories'),
+        db.ForeignKeyConstraint(['ManufacturerID'], ['StockWeavix.Manufacturers.ManufacturerID'], name='FK_Products_Manufacturers'),
+        db.ForeignKeyConstraint(['ProductCategoryID'], ['StockWeavix.ProductCategories.CategoryID'], name='FK_Products_ProductCategories'),
         db.PrimaryKeyConstraint('ProductID', name='PK__Products__B40CC6ED93612CFE'),
         db.UniqueConstraint('SKU', name='UQ__Products__DD4E05F2xxxxxxx'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     ProductID: Mapped[int] = mapped_column(Integer, primary_key=True)
     ProductName: Mapped[str] = mapped_column(String(255))
-    ProductCategoryID: Mapped[int] = mapped_column(ForeignKey('Belteh.ProductCategories.CategoryID'))
+    ProductCategoryID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.ProductCategories.CategoryID'))
     SKU: Mapped[str] = mapped_column(String(100), unique=True)
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
     LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
-    ManufacturerID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Manufacturers.ManufacturerID'), nullable=True)
+    ManufacturerID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Manufacturers.ManufacturerID'), nullable=True)
     ProductDescription: Mapped[str | None] = mapped_column(String(500), nullable=True)
     Price: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
 
@@ -255,15 +256,15 @@ class Product(db.Model):
 class SupplyContract(db.Model):
     __tablename__ = 'SupplyContracts'
     __table_args__ = (
-        db.ForeignKeyConstraint(['SupplierID'], ['Belteh.Suppliers.SupplierID'], name='FK_SupplyContracts_Suppliers'),
-        db.ForeignKeyConstraint(['SupplyStatusID'], ['Belteh.SupplyStatuses.SupplyStatusID'], name='FK_SupplyContracts_SupplyStatuses'),
+        db.ForeignKeyConstraint(['SupplierID'], ['StockWeavix.Suppliers.SupplierID'], name='FK_SupplyContracts_Suppliers'),
+        db.ForeignKeyConstraint(['SupplyStatusID'], ['StockWeavix.SupplyStatuses.SupplyStatusID'], name='FK_SupplyContracts_SupplyStatuses'),
         db.PrimaryKeyConstraint('SupplyID', name='PK__SupplyCo__C90D3409B87C0427'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     SupplyID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    SupplierID: Mapped[int] = mapped_column(ForeignKey('Belteh.Suppliers.SupplierID'))
-    SupplyStatusID: Mapped[int] = mapped_column(ForeignKey('Belteh.SupplyStatuses.SupplyStatusID'))
+    SupplierID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Suppliers.SupplierID'))
+    SupplyStatusID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.SupplyStatuses.SupplyStatusID'))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
     LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
     ContractPrice: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
@@ -277,15 +278,15 @@ class SupplyContract(db.Model):
 class Zone(db.Model):
     __tablename__ = 'Zones'
     __table_args__ = (
-        db.ForeignKeyConstraint(['WarehouseID'], ['Belteh.Warehouses.WarehouseID'], name='FK_Zones_Warehouses'),
+        db.ForeignKeyConstraint(['WarehouseID'], ['StockWeavix.Warehouses.WarehouseID'], name='FK_Zones_Warehouses'),
         db.PrimaryKeyConstraint('ZoneID', name='PK__Zones__60166795A2BA06ED'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     ZoneID: Mapped[int] = mapped_column(Integer, primary_key=True)
     ZoneCode: Mapped[int] = mapped_column(Integer)
     ZoneName: Mapped[str] = mapped_column(String(255))
-    WarehouseID: Mapped[int] = mapped_column(ForeignKey('Belteh.Warehouses.WarehouseID'))
+    WarehouseID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Warehouses.WarehouseID'))
     RowMin: Mapped[int] = mapped_column(Integer)
     RowMax: Mapped[int] = mapped_column(Integer)
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
@@ -298,15 +299,15 @@ class Zone(db.Model):
 class OrderItem(db.Model):
     __tablename__ = 'OrderItems'
     __table_args__ = (
-        db.ForeignKeyConstraint(['OrderID'], ['Belteh.Orders.OrderID'], name='FK_OrderItems_Orders'),
-        db.ForeignKeyConstraint(['ProductID'], ['Belteh.Products.ProductID'], name='FK_OrderItems_Products'),
+        db.ForeignKeyConstraint(['OrderID'], ['StockWeavix.Orders.OrderID'], name='FK_OrderItems_Orders'),
+        db.ForeignKeyConstraint(['ProductID'], ['StockWeavix.Products.ProductID'], name='FK_OrderItems_Products'),
         db.PrimaryKeyConstraint('OrderItemID', name='PK__OrderIte__57ED06A11A488A57'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     OrderItemID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    OrderID: Mapped[int] = mapped_column(ForeignKey('Belteh.Orders.OrderID'))
-    ProductID: Mapped[int] = mapped_column(ForeignKey('Belteh.Products.ProductID'))
+    OrderID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Orders.OrderID'))
+    ProductID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Products.ProductID'))
     Quantity: Mapped[int] = mapped_column(Integer)
     UnitPrice: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2))
 
@@ -319,15 +320,15 @@ class OrderItem(db.Model):
 class SupplyDetail(db.Model):
     __tablename__ = 'SupplyDetails'
     __table_args__ = (
-        db.ForeignKeyConstraint(['ProductID'], ['Belteh.Products.ProductID'], name='FK_SupplyDetails_Products'),
-        db.ForeignKeyConstraint(['SupplyID'], ['Belteh.SupplyContracts.SupplyID'], name='FK_SupplyDetails_SupplyContracts'),
+        db.ForeignKeyConstraint(['ProductID'], ['StockWeavix.Products.ProductID'], name='FK_SupplyDetails_Products'),
+        db.ForeignKeyConstraint(['SupplyID'], ['StockWeavix.SupplyContracts.SupplyID'], name='FK_SupplyDetails_SupplyContracts'),
         db.PrimaryKeyConstraint('SupplyDetailID', name='PK__Contract__CCA7AF02BA495A24'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     SupplyDetailID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    SupplyID: Mapped[int] = mapped_column(ForeignKey('Belteh.SupplyContracts.SupplyID'))
-    ProductID: Mapped[int] = mapped_column(ForeignKey('Belteh.Products.ProductID'))
+    SupplyID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.SupplyContracts.SupplyID'))
+    ProductID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Products.ProductID'))
     Quantity: Mapped[int] = mapped_column(Integer)
     UnitPrice: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
 
@@ -337,14 +338,14 @@ class SupplyDetail(db.Model):
 class ZoneRow(db.Model):
     __tablename__ = 'ZoneRows'
     __table_args__ = (
-        db.ForeignKeyConstraint(['ZoneID'], ['Belteh.Zones.ZoneID'], name='FK_ZoneRows_Zones'),
+        db.ForeignKeyConstraint(['ZoneID'], ['StockWeavix.Zones.ZoneID'], name='FK_ZoneRows_Zones'),
         db.PrimaryKeyConstraint('ZoneRowID', name='PK__ZoneRows__A94FAD68D04FF7C1'),
         db.Index('UQ_ZoneRows_Zone_Row', 'ZoneID', 'RowNumber', unique=True),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     ZoneRowID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    ZoneID: Mapped[int] = mapped_column(ForeignKey('Belteh.Zones.ZoneID'))
+    ZoneID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Zones.ZoneID'))
     RowNumber: Mapped[int] = mapped_column(Integer)
 
     zone: Mapped[Zone] = relationship('Zone', back_populates='rows')
@@ -353,21 +354,21 @@ class ZoneRow(db.Model):
 class Location(db.Model):
     __tablename__ = 'Locations'
     __table_args__ = (
-        db.ForeignKeyConstraint(['SectionID'], ['Belteh.ZoneSections.SectionID'], name='FK_Locations_ZoneSection'),
-        db.ForeignKeyConstraint(['ShelfID'], ['Belteh.ZoneShelves.ShelfID'], name='FK_Locations_ZoneShelf'),
-        db.ForeignKeyConstraint(['WarehouseID'], ['Belteh.Warehouses.WarehouseID'], name='FK_Locations_Warehouse'),
-        db.ForeignKeyConstraint(['ZoneRowID'], ['Belteh.ZoneRows.ZoneRowID'], name='FK_Locations_ZoneRow'),
+        db.ForeignKeyConstraint(['SectionID'], ['StockWeavix.ZoneSections.SectionID'], name='FK_Locations_ZoneSection'),
+        db.ForeignKeyConstraint(['ShelfID'], ['StockWeavix.ZoneShelves.ShelfID'], name='FK_Locations_ZoneShelf'),
+        db.ForeignKeyConstraint(['WarehouseID'], ['StockWeavix.Warehouses.WarehouseID'], name='FK_Locations_Warehouse'),
+        db.ForeignKeyConstraint(['ZoneRowID'], ['StockWeavix.ZoneRows.ZoneRowID'], name='FK_Locations_ZoneRow'),
         db.PrimaryKeyConstraint('LocationID', name='PK__Location__E7FEA477C0CF483D'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     LocationID: Mapped[int] = mapped_column(Integer, primary_key=True)
     CreatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'))
     LastUpdatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'), onupdate=default_utc_now)
-    WarehouseID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.Warehouses.WarehouseID'), nullable=True)
-    ZoneRowID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.ZoneRows.ZoneRowID'), nullable=True)
-    SectionID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.ZoneSections.SectionID'), nullable=True)
-    ShelfID: Mapped[int | None] = mapped_column(ForeignKey('Belteh.ZoneShelves.ShelfID'), nullable=True)
+    WarehouseID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Warehouses.WarehouseID'), nullable=True)
+    ZoneRowID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.ZoneRows.ZoneRowID'), nullable=True)
+    SectionID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.ZoneSections.SectionID'), nullable=True)
+    ShelfID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.ZoneShelves.ShelfID'), nullable=True)
 
     warehouse: Mapped[Warehouse | None] = relationship('Warehouse', back_populates='locations')
     row: Mapped[ZoneRow | None] = relationship('ZoneRow', back_populates='locations')
@@ -401,15 +402,15 @@ class Location(db.Model):
 class Inventory(db.Model):
     __tablename__ = 'Inventory'
     __table_args__ = (
-        db.ForeignKeyConstraint(['LocationID'], ['Belteh.Locations.LocationID'], name='FK_Inventory_Locations'),
-        db.ForeignKeyConstraint(['ProductID'], ['Belteh.Products.ProductID'], name='FK_Inventory_Products'),
+        db.ForeignKeyConstraint(['LocationID'], ['StockWeavix.Locations.LocationID'], name='FK_Inventory_Locations'),
+        db.ForeignKeyConstraint(['ProductID'], ['StockWeavix.Products.ProductID'], name='FK_Inventory_Products'),
         db.PrimaryKeyConstraint('InventoryID', name='PK__Inventor__F5FDE6D3B1869395'),
-        {'schema': 'Belteh'}
+        {'schema': 'StockWeavix'}
     )
 
     InventoryID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    ProductID: Mapped[int] = mapped_column(ForeignKey('Belteh.Products.ProductID'))
-    LocationID: Mapped[int] = mapped_column(ForeignKey('Belteh.Locations.LocationID'))
+    ProductID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Products.ProductID'))
+    LocationID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Locations.LocationID'))
     Quantity: Mapped[int] = mapped_column(Integer)
     LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
 
@@ -418,7 +419,7 @@ class Inventory(db.Model):
 
 class LocationStatusView(db.Model):
     __tablename__ = 'vw_LocationStatus'
-    __table_args__ = ({'schema': 'Belteh', 'info': {'is_view': True}})
+    __table_args__ = ({'schema': 'StockWeavix', 'info': {'is_view': True}})
     LocationID: Mapped[int] = mapped_column(Integer, primary_key=True)
     ZoneCode: Mapped[int | None] = mapped_column(Integer, nullable=True)
     RowNumber: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -429,7 +430,7 @@ class LocationStatusView(db.Model):
 
 class ZoneOccupancyView(db.Model):
     __tablename__ = 'ZoneOccupancyView'
-    __table_args__ = ({'schema': 'Belteh', 'info': {'is_view': True}})
+    __table_args__ = ({'schema': 'StockWeavix', 'info': {'is_view': True}})
     ZoneID: Mapped[int] = mapped_column(Integer, primary_key=True)
     TotalLocations: Mapped[int | None] = mapped_column(Integer, nullable=True)
     OccupiedLocations: Mapped[int | None] = mapped_column(Integer, nullable=True)

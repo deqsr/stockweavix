@@ -11,7 +11,7 @@ from app.models import (
     Product,
     ProductCategory,
     Manufacturer,
-    SupplyContract,  # Використовуємо SupplyContract з оновлених моделей
+    SupplyContract,
     SupplyStatus,
     City,
     Zone,
@@ -101,8 +101,7 @@ def dashboard():
     default_start_date_chart = today_dt - timedelta(days=29)
     default_end_date_chart = today_dt
 
-    # Отримуємо параметри фільтрів з URL для початкового завантаження (якщо вони є)
-    # Ці ж параметри будуть використовуватися для полів форми
+    # параметри фільтрів з URL для початкового завантаження
     start_date_chart_form_val_str = request.args.get('start_date_chart', default_start_date_chart.strftime('%Y-%m-%d'))
     end_date_chart_form_val_str = request.args.get('end_date_chart', default_end_date_chart.strftime('%Y-%m-%d'))
     category_id_chart_form_str = request.args.get('category_id_chart', '')
@@ -208,7 +207,7 @@ def dashboard():
                 ZoneOccupancyView.OccupiedLocations.label('occ_loc'),
                 ZoneOccupancyView.OccupancyPercentage.label('pct')
             )
-            .join(Zone, Zone.ZoneID == ZoneOccupancyView.ZoneID)  # Переконайтесь, що ZoneID є в обох
+            .join(Zone, Zone.ZoneID == ZoneOccupancyView.ZoneID)
             .order_by(Zone.ZoneCode).limit(7).all()
         )
         for z_item in zone_stats_raw:
@@ -299,7 +298,7 @@ def dashboard():
                            total_orders_all_time=total_orders_all_time,
                            supplies_table_data=supplies_table_data,
                            zones_table_data=zones_table_data,
-                           chart_labels=chart_labels_initial,  # Передаємо початкові дані
+                           chart_labels=chart_labels_initial,  # початкові дані
                            chart_sales_values=chart_sales_values_initial,
                            chart_quantity_values=chart_quantity_values_initial,
                            start_date_chart_form=initial_start_date.strftime('%Y-%m-%d'),
