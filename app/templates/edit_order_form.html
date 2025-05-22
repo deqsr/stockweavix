@@ -1,0 +1,290 @@
+{% extends 'layout.html' %}
+
+{% block title %}Редагування Замовлення #{{ order.OrderID }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Редагування Замовлення #{{ order.OrderID }}</h5>
+                    <a href="{{ url_for('orders_bp.view_order', order_id=order.OrderID) }}" class="btn btn-outline-secondary btn-sm">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/></svg>
+                        До перегляду
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('orders_bp.edit_order', order_id=order.OrderID) }}" id="editOrderForm">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        {# Основні поля замовлення #}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="client_id_edit_order" class="form-label">Клієнт <span class="text-danger">*</span></label>
+                                <select class="form-select" id="client_id_edit_order" name="client_id" required>
+                                    {% for client_item in all_clients %}
+                                    <option value="{{ client_item.ClientID }}" {% if (form_data.get('client_id')|int == client_item.ClientID) or (not form_data and order.ClientID == client_item.ClientID) %}selected{% endif %}>
+                                        {{ client_item.LastName }} {{ client_item.FirstName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="status_id_edit_order" class="form-label">Статус <span class="text-danger">*</span></label>
+                                <select class="form-select" id="status_id_edit_order" name="status_id" required>
+                                    {% for status_item in all_statuses %}
+                                    <option value="{{ status_item.OrderStatusID }}" {% if (form_data.get('status_id')|int == status_item.OrderStatusID) or (not form_data and order.OrderStatusID == status_item.OrderStatusID) %}selected{% endif %}>
+                                        {{ status_item.StatusName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                             <div class="col-md-6 mb-3">
+                                <label for="order_date_edit_order" class="form-label">Дата Замовлення <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="order_date_edit_order" name="order_date" 
+                                       value="{{ form_data.get('order_date', order.OrderDate.strftime('%Y-%m-%d') if order.OrderDate else '') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="shipping_address_edit_order" class="form-label">Адреса Доставки</label>
+                            <textarea class="form-control" id="shipping_address_edit_order" name="shipping_address" rows="2">{{ form_data.get('shipping_address', order.ShippingAddress or '') }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description_edit_order" class="form-label">Коментар / Опис</label>
+                            <textarea class="form-control" id="description_edit_order" name="description" rows="3">{{ form_data.get('description', order.Description or '') }}</textarea>
+                        </div>
+                        <hr>
+                        <h6>Товари в замовленні:</h6>
+                        <div id="order-items-container" class="mb-3">
+                             <div class="table-responsive">
+                                <table class="table table-sm table-hover order-items-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 20%;">SKU (пошук)</th>
+                                            <th style="width: 30%;">Товар</th>
+                                            <th style="width: 12%;" class="text-end">К-сть</th>
+                                            <th style="width: 18%;" class="text-end">Ціна за од. (₴)</th>
+                                            <th style="width: 10%;" class="text-end">Сума</th>
+                                            <th style="width: 10%;" class="text-center">Дія</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="main-order-items-tbody">
+                                        {% for item in order.items %}
+                                        <tr id="item-row-{{ item.OrderItemID }}" class="order-item-row existing-item-js">
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm sku-search-order" 
+                                                       placeholder="SKU..." 
+                                                       value="{{ item.product.SKU if item.product else '' }}" readonly disabled>
+                                            </td>
+                                            <td>
+                                                <select class="form-select form-select-sm product-select-order" 
+                                                        name="items-{{ item.OrderItemID }}-product_id" disabled>
+                                                    <option value="{{ item.ProductID }}" selected>
+                                                        {{ item.product.ProductName if item.product else 'N/A' }} (SKU: {{ item.product.SKU if item.product else 'N/A' }})
+                                                    </option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end item-quantity" 
+                                                       name="items-{{ item.OrderItemID }}-quantity" 
+                                                       value="{{ item.Quantity }}" min="1" step="1">
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm text-end item-unit-price" 
+                                                       name="items-{{ item.OrderItemID }}-unit_price" 
+                                                       value="{{ "%.2f"|format(item.UnitPrice|float) }}" pattern="^\d*([.,]\d{1,2})?$">
+                                            </td>
+                                            <td class="text-end item-sum">
+                                                {{ "%.2f"|format((item.Quantity * item.UnitPrice)|float) }}
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="form-check d-inline-flex align-items-center">
+                                                    <input class="form-check-input" type="checkbox" name="items-{{ item.OrderItemID }}-delete" id="delete-item-{{ item.OrderItemID }}" title="Позначити для видалення">
+                                                    <label class="form-check-label small ms-1" for="delete-item-{{ item.OrderItemID }}">Видалити</label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <button type="button" id="add-order-item-btn" class="btn btn-outline-success btn-sm mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>
+                             Додати товар до замовлення
+                        </button>
+
+                        <template id="new-order-item-template">
+                            <tr class="order-item-row new-item-js">
+                                <td>
+                                    <input type="text" class="form-control form-control-sm sku-search-order" placeholder="SKU або назва...">
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm product-select-order" name="new_items-{index}-product_id">
+                                        <option value="" selected>Оберіть товар...</option>
+                                        {% for prod_item in all_products %}
+                                        <option value="{{ prod_item.ProductID }}" data-price="{{ prod_item.Price|float|default('0.00') }}" 
+                                                data-sku="{{ prod_item.SKU.lower() if prod_item.SKU else '' }}"
+                                                data-name="{{ prod_item.ProductName.lower() if prod_item.ProductName else '' }}">
+                                            {{ prod_item.ProductName }} (SKU: {{ prod_item.SKU }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="number" class="form-control form-control-sm text-end item-quantity" name="new_items-{index}-quantity" value="1" min="1" step="1"></td>
+                                <td><input type="text" class="form-control form-control-sm text-end item-unit-price" name="new_items-{index}-unit_price" value="0.00" pattern="^\d*([.,]\d{1,2})?$"></td>
+                                <td class="text-end item-sum">0.00</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm py-0 px-1 remove-new-item-row" title="Видалити цей рядок">
+                                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                        
+                        <hr>
+                        <div class="row justify-content-end">
+                            <div class="col-md-4">
+                                <p class="text-end fw-bold fs-5">Загальна сума: <span id="orderTotalSum">{{ "%.2f"|format(order.OrderTotal|float) if order.OrderTotal is not none else '0.00' }}</span> ₴</p>
+                            </div>
+                        </div>
+
+
+                        <div class="d-flex justify-content-end mt-3">
+                            <a href="{{ url_for('orders_bp.view_order', order_id=order.OrderID) }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addOrderItemBtn = document.getElementById('add-order-item-btn');
+    const orderItemsTbody = document.getElementById('main-order-items-tbody');
+    const newOrderItemTemplateEl = document.getElementById('new-order-item-template');
+    const orderTotalSumEl = document.getElementById('orderTotalSum');
+    let newItemIndex = 0;
+
+    function updateRowSum(rowElement) {
+        const quantityInput = rowElement.querySelector('.item-quantity');
+        const unitPriceInput = rowElement.querySelector('.item-unit-price');
+        const sumCell = rowElement.querySelector('.item-sum');
+
+        if (quantityInput && unitPriceInput && sumCell) {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value.replace(',', '.')) || 0.0;
+            const sum = quantity * unitPrice;
+            sumCell.textContent = sum.toFixed(2);
+        }
+        updateOrderTotalSum();
+    }
+
+    function updateOrderTotalSum() {
+        if (!orderItemsTbody || !orderTotalSumEl) return;
+        let totalSum = 0;
+        orderItemsTbody.querySelectorAll('.order-item-row').forEach(row => {
+            const sumCell = row.querySelector('.item-sum');
+            if (sumCell) {
+                totalSum += parseFloat(sumCell.textContent) || 0;
+            }
+        });
+        orderTotalSumEl.textContent = totalSum.toFixed(2);
+    }
+    
+    function initRowEventListeners(rowElement) {
+        const quantityInput = rowElement.querySelector('.item-quantity');
+        const unitPriceInput = rowElement.querySelector('.item-unit-price');
+        if (quantityInput) quantityInput.addEventListener('input', () => updateRowSum(rowElement));
+        if (unitPriceInput) unitPriceInput.addEventListener('input', () => updateRowSum(rowElement));
+
+        // SKU/Name search for NEW rows
+        if (rowElement.classList.contains('new-item-js')) {
+            const skuInput = rowElement.querySelector('.sku-search-order');
+            const productSelect = rowElement.querySelector('.product-select-order');
+            
+            if (skuInput && productSelect) {
+                skuInput.addEventListener('input', function () {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    Array.from(productSelect.options).forEach(option => {
+                        if (option.value === "") { option.style.display = ''; return; }
+                        const sku = option.dataset.sku || '';
+                        const name = option.dataset.name || '';
+                        option.style.display = (searchTerm === "" || sku.includes(searchTerm) || name.includes(searchTerm)) ? '' : 'none';
+                    });
+                });
+
+                productSelect.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const price = selectedOption.dataset.price || '0.00';
+                    if (unitPriceInput) {
+                        unitPriceInput.value = parseFloat(price).toFixed(2);
+                        updateRowSum(rowElement);
+                    }
+                });
+            }
+        }
+    }
+
+    // Init for existing rows
+    if (orderItemsTbody) {
+        orderItemsTbody.querySelectorAll('.order-item-row.existing-item-js').forEach(row => {
+            initRowEventListeners(row);
+        });
+        updateOrderTotalSum(); // Initial total sum calculation
+    }
+
+
+    if (addOrderItemBtn && newOrderItemTemplateEl && orderItemsTbody) {
+        addOrderItemBtn.addEventListener('click', function () {
+            const clonedContent = newOrderItemTemplateEl.content.cloneNode(true);
+            const newRow = clonedContent.querySelector('tr.order-item-row');
+
+            if (newRow) {
+                const productSelect = newRow.querySelector('.product-select-order');
+                if (productSelect) {
+                    productSelect.name = `new_items-${newItemIndex}-product_id`;
+                }
+                const quantityInput = newRow.querySelector('.item-quantity');
+                if (quantityInput) {
+                    quantityInput.name = `new_items-${newItemIndex}-quantity`;
+                }
+                const priceInput = newRow.querySelector('.item-unit-price');
+                if (priceInput) {
+                    priceInput.name = `new_items-${newItemIndex}-unit_price`;
+                }
+                
+                orderItemsTbody.appendChild(newRow);
+                initRowEventListeners(newRow);
+                updateOrderTotalSum();
+
+                newRow.querySelector('.remove-new-item-row').addEventListener('click', function() {
+                    this.closest('tr').remove();
+                    updateOrderTotalSum();
+                });
+                newItemIndex++;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

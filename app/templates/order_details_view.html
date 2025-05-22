@@ -1,0 +1,107 @@
+{% extends 'layout.html' %}
+
+{% block title %}Деталі Замовлення #{{ order.OrderID }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Замовлення #{{ order.OrderID }}</h5>
+            <div>
+                <a href="{{ url_for('orders_bp.list_orders') }}" class="btn btn-outline-secondary btn-sm me-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/></svg>
+                    До списку
+                </a>
+                <a href="{{ url_for('orders_bp.edit_order', order_id=order.OrderID) }}" class="btn btn-warning btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.207a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>
+                    Редагувати
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p><strong>Клієнт:</strong> 
+                        {% if order.client %}
+                            {{ order.client.LastName }} {{ order.client.FirstName }} (#{{ order.client.ClientID }})
+                            {% if order.client.Phone %}<br><small class="text-muted">Тел: {{ order.client.Phone }}</small>{% endif %}
+                            {% if order.client.Email %}<br><small class="text-muted">Email: {{ order.client.Email }}</small>{% endif %}
+                        {% else %} N/A {% endif %}
+                    </p>
+                    <p><strong>Дата Замовлення:</strong> {{ order.OrderDate.strftime('%d.%m.%Y') if order.OrderDate else 'N/A' }}</p>
+                    <p><strong>Статус:</strong> 
+                        <span class="badge rounded-pill" style="background-color: {{ '#6c757d' }};"> {# TODO: Стилі для статусів #}
+                            {{ order.status.StatusName if order.status else 'N/A' }}
+                        </span>
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Адреса Доставки:</strong><br>{{ order.ShippingAddress | nl2br | default('Не вказано') }}</p>
+                    {# 
+                    {% if order.city %}
+                    <p><strong>Місто:</strong> {{ order.city.CityName }}</p>
+                    {% endif %}
+                    #}
+                    <p><strong>Останнє оновлення:</strong> {{ order.LastUpdated.strftime('%d.%m.%Y %H:%M') if order.LastUpdated else 'N/A' }}</p>
+                </div>
+            </div>
+
+            {% if order.Description %}
+            <div class="mb-3">
+                <p><strong>Коментар / Опис:</strong></p>
+                <p class="text-muted" style="white-space: pre-wrap;">{{ order.Description }}</p>
+            </div>
+            {% endif %}
+
+            <h6 class="mt-4">Товари в замовленні:</h6>
+            {% if order.items %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>SKU</th>
+                            <th>Назва товару</th>
+                            <th class="text-end">Кількість</th>
+                            <th class="text-end">Ціна за од. (₴)</th>
+                            <th class="text-end">Сума (₴)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ item.product.SKU if item.product else 'N/A' }}</td>
+                            <td>{{ item.product.ProductName if item.product else 'N/A' }}</td>
+                            <td class="text-end">{{ item.Quantity }}</td>
+                            <td class="text-end">{{ "%.2f"|format(item.UnitPrice|float) }}</td>
+                            <td class="text-end">{{ "%.2f"|format((item.Quantity * item.UnitPrice)|float) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="5" class="text-end fw-bold">Загальна сума замовлення:</td>
+                            <td class="text-end fw-bold">{{ "%.2f"|format(order.OrderTotal|float) if order.OrderTotal is not none else '0.00' }} ₴</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">Товари до цього замовлення ще не додані.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

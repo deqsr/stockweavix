@@ -1,0 +1,85 @@
+{% extends 'layout.html' %}
+
+{% block title %}Створення Нового Замовлення{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Нове Замовлення</h5>
+                     <a href="{{ url_for('orders_bp.list_orders') }}" class="btn btn-outline-secondary btn-sm">До списку замовлень</a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('orders_bp.create_order') }}">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            <label for="client_id_order" class="form-label">Клієнт <span class="text-danger">*</span></label>
+                            <select class="form-select" id="client_id_order" name="client_id" required>
+                                <option value="" {% if not form_data.get('client_id') %}selected{% endif %} disabled>Оберіть клієнта...</option>
+                                {% for client in all_clients %}
+                                <option value="{{ client.ClientID }}" {% if form_data.get('client_id')|int == client.ClientID %}selected{% endif %}>
+                                    {{ client.LastName }} {{ client.FirstName }} (#{{ client.ClientID }})
+                                </option>
+                                {% endfor %}
+                                {# опція для створення нового клієнта, яка показуватиме дод. поля через JS #}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="order_date_order" class="form-label">Дата Замовлення <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="order_date_order" name="order_date" value="{{ form_data.get('order_date', current_date) }}" required>
+                        </div>
+
+                        {# Статус на бекенді  #}
+
+                        <div class="mb-3">
+                            <label for="shipping_address_order" class="form-label">Адреса Доставки</label>
+                            <textarea class="form-control" id="shipping_address_order" name="shipping_address" rows="2">{{ form_data.get('shipping_address', '') }}</textarea>
+                        </div>
+
+                        {#
+                        <div class="mb-3">
+                            <label for="city_id_order" class="form-label">Місто</label>
+                            <select class="form-select" id="city_id_order" name="city_id">
+                                <option value="">Не обрано</option>
+                                {% for city_item in all_cities %}
+                                <option value="{{ city_item.CityID }}" {% if form_data.get('city_id')|int == city_item.CityID %}selected{% endif %}>
+                                    {{ city_item.CityName }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        #}
+
+                        <div class="mb-3">
+                            <label for="description_order" class="form-label">Коментар / Опис</label>
+                            <textarea class="form-control" id="description_order" name="description" rows="3">{{ form_data.get('description', '') }}</textarea>
+                        </div>
+                        
+                        <div class="alert alert-info small">
+                            Товари до замовлення можна буде додати на наступному кроці (редагування замовлення).
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('orders_bp.list_orders') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Створити Замовлення</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
