@@ -1,0 +1,305 @@
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Матриця ABC/XYZ Аналізу Товарів <small class="text-muted">({{ abc_xyz_data.period_string }})</small></h5>
+    </div>
+    <div class="card-body">
+        {# ФОРМА ДЛЯ ВИБОРУ ПЕРІОДУ АНАЛІЗУ (БЕКЕНД) #}
+        <form method="GET" action="{{ url_for('analytics_bp.analytics_dashboard') }}" id="abcXyzPeriodFilterForm" class="mb-3">
+            <input type="hidden" name="active_tab_target" value="#sales-analysis-pane">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="start_date_abc_xyz" class="form-label form-label-sm">Початкова дата ABC/XYZ:</label>
+                    <input type="date" class="form-control form-control-sm" id="start_date_abc_xyz" name="start_date_abc_xyz" value="{{ current_start_date_abc_xyz }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date_abc_xyz" class="form-label form-label-sm">Кінцева дата ABC/XYZ:</label>
+                    <input type="date" class="form-control form-control-sm" id="end_date_abc_xyz" name="end_date_abc_xyz" value="{{ current_end_date_abc_xyz }}">
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Оновити аналіз
+                    </button>
+                </div>
+                 <div class="col-md-auto">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetAbcXyzPeriodFilters">
+                        За замовчуванням (період)
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="row mb-4">
+            {# ... (код діаграм без змін) ... #}
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">Розподіл товарів за ABC-групами</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 220px;">
+                            <canvas id="abcPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0">Розподіл товарів за XYZ-групами</h6>
+                    </div>
+                    <div class="card-body">
+                         <div class="chart-container" style="height: 220px;">
+                            <canvas id="xyzPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ФОРМА ФІЛЬТРАЦІЇ ТАБЛИЦІ (КЛІЄНТСЬКА) #}
+        <div class="row g-3 align-items-end mb-3 pt-3 border-top">
+            <div class="col-md-3">
+                <label for="filterAbcClass" class="form-label form-label-sm">Фільтр по ABC:</label>
+                <select id="filterAbcClass" class="form-select form-select-sm">
+                    <option value="">Всі ABC</option>
+                    <option value="A">A - Найцінніші</option>
+                    <option value="B">B - Середньої важливості</option>
+                    <option value="C">C - Найменш цінні</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterXyzClass" class="form-label form-label-sm">Фільтр по XYZ:</label>
+                <select id="filterXyzClass" class="form-select form-select-sm">
+                    <option value="">Всі XYZ</option>
+                    <option value="X">X - Стабільний попит</option>
+                    <option value="Y">Y - Коливання попиту</option>
+                    <option value="Z">Z - Нерегулярний попит</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="filterTextAbcXyz" class="form-label form-label-sm">Фільтр по тексту (SKU, Товар):</label>
+                <input type="text" id="filterTextAbcXyz" class="form-control form-control-sm" placeholder="SKU, назва товару...">
+            </div>
+            <div class="col-md-auto">
+                {# ЗМІНЕНО НАЗВУ КНОПКИ #}
+                <button type="button" class="btn btn-info btn-sm w-100" id="applyAbcXyzTableFilters">
+                    <i class="bi bi-funnel-fill"></i> Фільтрувати
+                </button>
+            </div>
+            <div class="col-md-auto">
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="resetAbcXyzTableFilters">
+                    Скинути фільтри
+                </button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                    {% if abc_xyz_data.table_data %}
+                    <table class="table table-sm table-hover table-striped" id="abcXyzTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th role="columnheader">SKU</th>
+                                <th role="columnheader">Товар</th>
+                                <th class="text-end" role="columnheader" data-sort-method="number">Обсяг продажів (₴)</th>
+                                <th class="text-center" role="columnheader" data-column-type="abc">ABC</th>
+                                <th class="text-center" role="columnheader" data-column-type="xyz">XYZ</th>
+                                <th class="text-center" role="columnheader" data-column-type="abcxyz">ABC/XYZ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in abc_xyz_data.table_data %}
+                            <tr data-abc-desc="{% if item.abc_class == 'A' %}Найцінніші товари{% elif item.abc_class == 'B' %}Товари середньої важливості{% elif item.abc_class == 'C' %}Найменш цінні товари{% endif %}"
+                                data-xyz-desc="{% if item.xyz_class == 'X' %}Товари зі стабільним попитом{% elif item.xyz_class == 'Y' %}Товари з коливаннями попиту{% elif item.xyz_class == 'Z' %}Товари з нерегулярним попитом{% endif %}">
+                                <td data-column-type="sku">{{ item.SKU }}</td>
+                                <td data-column-type="product_name">{{ item.ProductName }}</td>
+                                <td class="text-end" data-sort="{{ item.total_revenue|replace(',', '')|float }}">{{ item.total_revenue }}</td>
+                                <td class="text-center" data-column-type="abc">{{ item.abc_class }}</td>
+                                <td class="text-center" data-column-type="xyz">{{ item.xyz_class }}</td>
+                                <td class="text-center" data-column-type="abcxyz">{{ item.abc_xyz_class }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="alert alert-info">Немає даних для ABC/XYZ аналізу за обраний період.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-secondary small mt-4">
+           {# ... (довідка по ABC/XYZ без змін) ... #}
+           <h6 class="alert-heading">Довідка по ABC/XYZ аналізу</h6>
+            <p class="mb-1"><strong>ABC-аналіз</strong> класифікує товари за їхнім внеском у загальний обсяг продажів (виручка) за обраний період:</p>
+            <ul>
+                <li><strong>Група A:</strong> Найцінніші товари (~70-80% виручки).</li>
+                <li><strong>Група B:</strong> Товари середньої важливості (~15-20% виручки).</li>
+                <li><strong>Група C:</strong> Найменш цінні товари (~5-10% виручки).</li>
+            </ul>
+            <p class="mb-1"><strong>XYZ-аналіз</strong> класифікує товари за стабільністю їх попиту (на основі коефіцієнта варіації щоденних продажів за обраний період):</p>
+            <ul>
+                <li><strong>Група X:</strong> Товари зі стабільним попитом (низька варіативність).</li>
+                <li><strong>Група Y:</strong> Товари з коливаннями попиту (середня варіативність).</li>
+                <li><strong>Група Z:</strong> Товари з нерегулярним попитом (висока варіативність).</li>
+            </ul>
+            <p class="mb-0"><strong>Матриця ABC/XYZ</strong> комбінує ці два підходи для точнішого планування.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const abcPieData = {{ abc_xyz_data.abc_pie_data | tojson }};
+    const xyzPieData = {{ abc_xyz_data.xyz_pie_data | tojson }};
+
+    const abcColors = { 'A': 'rgba(75, 192, 192, 0.7)', 'B': 'rgba(255, 205, 86, 0.7)', 'C': 'rgba(255, 99, 132, 0.7)' };
+    const xyzColors = { 'X': 'rgba(54, 162, 235, 0.7)', 'Y': 'rgba(255, 159, 64, 0.7)', 'Z': 'rgba(153, 102, 255, 0.7)' };
+
+    const ctxAbcPie = document.getElementById('abcPieChart');
+    if (ctxAbcPie && Object.keys(abcPieData).length > 0) {
+        new Chart(ctxAbcPie.getContext('2d'), {
+            type: 'pie',
+            data: { /* ... дані діаграми ... */
+                labels: Object.keys(abcPieData),
+                datasets: [{
+                    label: 'ABC Розподіл',
+                    data: Object.values(abcPieData),
+                    backgroundColor: Object.keys(abcPieData).map(key => abcColors[key] || 'rgba(201, 203, 207, 0.7)'),
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+    } else if (ctxAbcPie) {
+         ctxAbcPie.parentNode.innerHTML = '<p class="text-center text-muted my-auto">Немає даних для ABC діаграми.</p>';
+    }
+
+    const ctxXyzPie = document.getElementById('xyzPieChart');
+    if (ctxXyzPie && Object.keys(xyzPieData).length > 0) {
+        new Chart(ctxXyzPie.getContext('2d'), {
+            type: 'doughnut',
+            data: { /* ... дані діаграми ... */
+                labels: Object.keys(xyzPieData),
+                datasets: [{
+                    label: 'XYZ Розподіл',
+                    data: Object.values(xyzPieData),
+                    backgroundColor: Object.keys(xyzPieData).map(key => xyzColors[key] || 'rgba(201, 203, 207, 0.7)'),
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+    } else if (ctxXyzPie) {
+        ctxXyzPie.parentNode.innerHTML = '<p class="text-center text-muted my-auto">Немає даних для XYZ діаграми.</p>';
+    }
+
+    const resetAbcXyzPeriodBtn = document.getElementById('resetAbcXyzPeriodFilters');
+    if (resetAbcXyzPeriodBtn) {
+        resetAbcXyzPeriodBtn.addEventListener('click', function() {
+            document.getElementById('start_date_abc_xyz').value = '{{ default_start_date_abc_xyz_str }}';
+            document.getElementById('end_date_abc_xyz').value = '{{ default_end_date_abc_xyz_str }}';
+            document.getElementById('filterAbcClass').value = '';
+            document.getElementById('filterXyzClass').value = '';
+            document.getElementById('filterTextAbcXyz').value = '';
+            document.getElementById('abcXyzPeriodFilterForm').submit();
+        });
+    }
+
+    const abcXyzPeriodForm = document.getElementById('abcXyzPeriodFilterForm');
+    if (abcXyzPeriodForm) {
+        abcXyzPeriodForm.addEventListener('submit', function(event) {
+            let hiddenInput = abcXyzPeriodForm.querySelector('input[name="active_tab_target"]');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'active_tab_target';
+                abcXyzPeriodForm.appendChild(hiddenInput);
+            }
+            hiddenInput.value = '#sales-analysis-pane';
+            preserveFiltersOnSubmit(this);
+        });
+    }
+
+    const abcXyzTableElement = document.getElementById('abcXyzTable');
+    if (abcXyzTableElement) {
+        new Tablesort(abcXyzTableElement);
+    }
+
+    // Фільтрація таблиці ABC/XYZ за допомогою окремих полів
+    const applyTableFiltersBtn = document.getElementById('applyAbcXyzTableFilters');
+    const resetTableFiltersBtn = document.getElementById('resetAbcXyzTableFilters');
+    const filterAbcClassSelect = document.getElementById('filterAbcClass');
+    const filterXyzClassSelect = document.getElementById('filterXyzClass');
+    const filterTextAbcXyzInput = document.getElementById('filterTextAbcXyz');
+
+    function filterAbcXyzTableRows() { // Перейменовано функцію для уникнення конфлікту
+        if (!abcXyzTableElement) return;
+
+        const selectedAbc = filterAbcClassSelect.value;
+        const selectedXyz = filterXyzClassSelect.value;
+        const filterText = filterTextAbcXyzInput.value.toLowerCase().trim();
+        const rows = abcXyzTableElement.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName('td');
+            let showRow = true;
+
+            // Фільтр по ABC класу (комірка з індексом 3)
+            if (selectedAbc && cells[3] && cells[3].textContent.trim() !== selectedAbc) {
+                showRow = false;
+            }
+            // Фільтр по XYZ класу (комірка з індексом 4)
+            if (showRow && selectedXyz && cells[4] && cells[4].textContent.trim() !== selectedXyz) {
+                showRow = false;
+            }
+            // Фільтр по тексту (SKU - індекс 0, Назва товару - індекс 1)
+            if (showRow && filterText) {
+                const skuText = cells[0] ? cells[0].textContent.toLowerCase() : "";
+                const productNameText = cells[1] ? cells[1].textContent.toLowerCase() : "";
+                if (!skuText.includes(filterText) && !productNameText.includes(filterText)) {
+                    showRow = false;
+                }
+            }
+            rows[i].style.display = showRow ? '' : 'none';
+        }
+    }
+
+    if (applyTableFiltersBtn) {
+        applyTableFiltersBtn.addEventListener('click', filterAbcXyzTableRows);
+    }
+
+    if (resetTableFiltersBtn) {
+        resetTableFiltersBtn.addEventListener('click', function() {
+            if(filterAbcClassSelect) filterAbcClassSelect.value = '';
+            if(filterXyzClassSelect) filterXyzClassSelect.value = '';
+            if(filterTextAbcXyzInput) filterTextAbcXyzInput.value = '';
+            filterAbcXyzTableRows(); // ВИПРАВЛЕНО: викликаємо правильну функцію
+        });
+    }
+});
+
+// ... (функція preserveFiltersOnSubmit без змін) ...
+function preserveFiltersOnSubmit(currentFormElement) {
+    const allForms = [
+        { id: 'salesDynamicsFilterForm', params: ['start_date_dynamics', 'end_date_dynamics', 'comparison_type'] },
+        { id: 'abcXyzPeriodFilterForm', params: ['start_date_abc_xyz', 'end_date_abc_xyz'] },
+        { id: 'inventoryTurnoverFilterForm', params: ['start_date_turnover', 'end_date_turnover'] },
+        { id: 'deadStockFilterForm', params: ['dead_stock_days'] }
+    ];
+
+    allForms.forEach(formInfo => {
+        if (currentFormElement.id !== formInfo.id) {
+            formInfo.params.forEach(paramName => {
+                const inputElement = document.getElementById(paramName);
+                if (inputElement && !currentFormElement.querySelector(`[name="${paramName}"]`)) {
+                    let hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = paramName;
+                    hiddenInput.value = inputElement.value;
+                    currentFormElement.appendChild(hiddenInput);
+                }
+            });
+        }
+    });
+}
+</script>

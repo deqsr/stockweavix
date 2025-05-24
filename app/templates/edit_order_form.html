@@ -27,13 +27,12 @@
                             {% endif %}
                         {% endwith %}
 
-                        {# Основні поля замовлення #}
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="client_id_edit_order" class="form-label">Клієнт <span class="text-danger">*</span></label>
                                 <select class="form-select" id="client_id_edit_order" name="client_id" required>
                                     {% for client_item in all_clients %}
-                                    <option value="{{ client_item.ClientID }}" {% if (form_data.get('client_id')|int == client_item.ClientID) or (not form_data and order.ClientID == client_item.ClientID) %}selected{% endif %}>
+                                    <option value="{{ client_item.ClientID }}" {% if (form_data.get('client_id')|string == client_item.ClientID|string) or (not form_data and order.ClientID|string == client_item.ClientID|string) %}selected{% endif %}>
                                         {{ client_item.LastName }} {{ client_item.FirstName }}
                                     </option>
                                     {% endfor %}
@@ -43,7 +42,7 @@
                                 <label for="status_id_edit_order" class="form-label">Статус <span class="text-danger">*</span></label>
                                 <select class="form-select" id="status_id_edit_order" name="status_id" required>
                                     {% for status_item in all_statuses %}
-                                    <option value="{{ status_item.OrderStatusID }}" {% if (form_data.get('status_id')|int == status_item.OrderStatusID) or (not form_data and order.OrderStatusID == status_item.OrderStatusID) %}selected{% endif %}>
+                                    <option value="{{ status_item.OrderStatusID }}" {% if (form_data.get('status_id')|string == status_item.OrderStatusID|string) or (not form_data and order.OrderStatusID|string == status_item.OrderStatusID|string) %}selected{% endif %}>
                                         {{ status_item.StatusName }}
                                     </option>
                                     {% endfor %}
@@ -51,16 +50,32 @@
                             </div>
                         </div>
                         <div class="row">
-                             <div class="col-md-6 mb-3">
+                             <div class="col-md-4 mb-3">
                                 <label for="order_date_edit_order" class="form-label">Дата Замовлення <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="order_date_edit_order" name="order_date" 
+                                <input type="date" class="form-control" id="order_date_edit_order" name="order_date"
                                        value="{{ form_data.get('order_date', order.OrderDate.strftime('%Y-%m-%d') if order.OrderDate else '') }}" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="payment_date_edit_order" class="form-label">Дата Оплати</label>
+                                <input type="date" class="form-control" id="payment_date_edit_order" name="payment_date"
+                                       value="{{ form_data.get('payment_date', order.PaymentDate.strftime('%Y-%m-%d') if order.PaymentDate else '') }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="city_id_edit_order" class="form-label">Місто</label>
+                                <select class="form-select" id="city_id_edit_order" name="city_id">
+                                    <option value="">Не обрано</option>
+                                    {% for city_item in all_cities %}
+                                    <option value="{{ city_item.CityID }}" {% if (form_data.get('city_id')|string == city_item.CityID|string) or (not form_data and order.CityID|string == city_item.CityID|string) %}selected{% endif %}>
+                                        {{ city_item.CityName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="shipping_address_edit_order" class="form-label">Адреса Доставки</label>
-                            <textarea class="form-control" id="shipping_address_edit_order" name="shipping_address" rows="2">{{ form_data.get('shipping_address', order.ShippingAddress or '') }}</textarea>
+                            <label for="shipping_address_edit_order" class="form-label">Адреса Доставки (буде додано до опису)</label>
+                            <textarea class="form-control" id="shipping_address_edit_order" name="shipping_address" rows="2">{{ form_data.get('shipping_address', order.derived_shipping_address if order.derived_shipping_address != 'Адреса не вказана' else '') }}</textarea>
                         </div>
                         <div class="mb-3">
                             <label for="description_edit_order" class="form-label">Коментар / Опис</label>
@@ -85,12 +100,12 @@
                                         {% for item in order.items %}
                                         <tr id="item-row-{{ item.OrderItemID }}" class="order-item-row existing-item-js">
                                             <td>
-                                                <input type="text" class="form-control form-control-sm sku-search-order" 
-                                                       placeholder="SKU..." 
+                                                <input type="text" class="form-control form-control-sm sku-search-order"
+                                                       placeholder="SKU..."
                                                        value="{{ item.product.SKU if item.product else '' }}" readonly disabled>
                                             </td>
                                             <td>
-                                                <select class="form-select form-select-sm product-select-order" 
+                                                <select class="form-select form-select-sm product-select-order"
                                                         name="items-{{ item.OrderItemID }}-product_id" disabled>
                                                     <option value="{{ item.ProductID }}" selected>
                                                         {{ item.product.ProductName if item.product else 'N/A' }} (SKU: {{ item.product.SKU if item.product else 'N/A' }})
@@ -98,13 +113,13 @@
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end item-quantity" 
-                                                       name="items-{{ item.OrderItemID }}-quantity" 
+                                                <input type="number" class="form-control form-control-sm text-end item-quantity"
+                                                       name="items-{{ item.OrderItemID }}-quantity"
                                                        value="{{ item.Quantity }}" min="1" step="1">
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control form-control-sm text-end item-unit-price" 
-                                                       name="items-{{ item.OrderItemID }}-unit_price" 
+                                                <input type="text" class="form-control form-control-sm text-end item-unit-price"
+                                                       name="items-{{ item.OrderItemID }}-unit_price"
                                                        value="{{ "%.2f"|format(item.UnitPrice|float) }}" pattern="^\d*([.,]\d{1,2})?$">
                                             </td>
                                             <td class="text-end item-sum">
@@ -137,7 +152,7 @@
                                     <select class="form-select form-select-sm product-select-order" name="new_items-{index}-product_id">
                                         <option value="" selected>Оберіть товар...</option>
                                         {% for prod_item in all_products %}
-                                        <option value="{{ prod_item.ProductID }}" data-price="{{ prod_item.Price|float|default('0.00') }}" 
+                                        <option value="{{ prod_item.ProductID }}" data-price="{{ prod_item.Price|float|default('0.00') }}"
                                                 data-sku="{{ prod_item.SKU.lower() if prod_item.SKU else '' }}"
                                                 data-name="{{ prod_item.ProductName.lower() if prod_item.ProductName else '' }}">
                                             {{ prod_item.ProductName }} (SKU: {{ prod_item.SKU }})
@@ -155,14 +170,13 @@
                                 </td>
                             </tr>
                         </template>
-                        
+
                         <hr>
                         <div class="row justify-content-end">
                             <div class="col-md-4">
-                                <p class="text-end fw-bold fs-5">Загальна сума: <span id="orderTotalSum">{{ "%.2f"|format(order.OrderTotal|float) if order.OrderTotal is not none else '0.00' }}</span> ₴</p>
+                                <p class="text-end fw-bold fs-5">Загальна сума: <span id="orderTotalSum">{{ "%.2f"|format(order.calculate_total()|float) }}</span> ₴</p>
                             </div>
                         </div>
-
 
                         <div class="d-flex justify-content-end mt-3">
                             <a href="{{ url_for('orders_bp.view_order', order_id=order.OrderID) }}" class="btn btn-outline-secondary me-2">Скасувати</a>
@@ -203,6 +217,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!orderItemsTbody || !orderTotalSumEl) return;
         let totalSum = 0;
         orderItemsTbody.querySelectorAll('.order-item-row').forEach(row => {
+            // Перевіряємо, чи цей рядок не позначений для видалення (якщо є така логіка)
+            const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-delete"]');
+            if (deleteCheckbox && deleteCheckbox.checked) {
+                // Якщо рядок позначено для видалення, не враховуємо його суму
+                return;
+            }
             const sumCell = row.querySelector('.item-sum');
             if (sumCell) {
                 totalSum += parseFloat(sumCell.textContent) || 0;
@@ -210,18 +230,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         orderTotalSumEl.textContent = totalSum.toFixed(2);
     }
-    
+
     function initRowEventListeners(rowElement) {
         const quantityInput = rowElement.querySelector('.item-quantity');
         const unitPriceInput = rowElement.querySelector('.item-unit-price');
+        const deleteCheckbox = rowElement.querySelector('input[type="checkbox"][name$="-delete"]');
+
+
         if (quantityInput) quantityInput.addEventListener('input', () => updateRowSum(rowElement));
         if (unitPriceInput) unitPriceInput.addEventListener('input', () => updateRowSum(rowElement));
+        if (deleteCheckbox) deleteCheckbox.addEventListener('change', updateOrderTotalSum); // Оновлюємо загальну суму при зміні чекбоксу видалення
 
-        // SKU/Name search for NEW rows
+
         if (rowElement.classList.contains('new-item-js')) {
             const skuInput = rowElement.querySelector('.sku-search-order');
             const productSelect = rowElement.querySelector('.product-select-order');
-            
+
             if (skuInput && productSelect) {
                 skuInput.addEventListener('input', function () {
                     const searchTerm = this.value.toLowerCase().trim();
@@ -238,19 +262,22 @@ document.addEventListener('DOMContentLoaded', function () {
                     const price = selectedOption.dataset.price || '0.00';
                     if (unitPriceInput) {
                         unitPriceInput.value = parseFloat(price).toFixed(2);
-                        updateRowSum(rowElement);
                     }
+                    // Оновлюємо артикул в полі пошуку для нових рядків
+                    if (skuInput && selectedOption.value) {
+                        skuInput.value = selectedOption.dataset.sku || '';
+                    }
+                    updateRowSum(rowElement);
                 });
             }
         }
     }
 
-    // Init for existing rows
     if (orderItemsTbody) {
-        orderItemsTbody.querySelectorAll('.order-item-row.existing-item-js').forEach(row => {
+        orderItemsTbody.querySelectorAll('.order-item-row').forEach(row => { // Застосовуємо до всіх рядків
             initRowEventListeners(row);
         });
-        updateOrderTotalSum(); // Initial total sum calculation
+        updateOrderTotalSum();
     }
 
 
@@ -260,22 +287,18 @@ document.addEventListener('DOMContentLoaded', function () {
             const newRow = clonedContent.querySelector('tr.order-item-row');
 
             if (newRow) {
-                const productSelect = newRow.querySelector('.product-select-order');
-                if (productSelect) {
-                    productSelect.name = `new_items-${newItemIndex}-product_id`;
-                }
-                const quantityInput = newRow.querySelector('.item-quantity');
-                if (quantityInput) {
-                    quantityInput.name = `new_items-${newItemIndex}-quantity`;
-                }
-                const priceInput = newRow.querySelector('.item-unit-price');
-                if (priceInput) {
-                    priceInput.name = `new_items-${newItemIndex}-unit_price`;
-                }
-                
+                // Оновлення імен для унікальності
+                newRow.querySelectorAll('input, select').forEach(el => {
+                    if (el.name) {
+                        el.name = el.name.replace('{index}', newItemIndex);
+                    }
+                    if (el.id) {
+                        el.id = el.id.replace('{index}', newItemIndex);
+                    }
+                });
+
                 orderItemsTbody.appendChild(newRow);
                 initRowEventListeners(newRow);
-                updateOrderTotalSum();
 
                 newRow.querySelector('.remove-new-item-row').addEventListener('click', function() {
                     this.closest('tr').remove();

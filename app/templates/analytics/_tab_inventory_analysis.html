@@ -1,0 +1,350 @@
+{# Оборотність запасів #}
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Оборотність запасів по категоріях</h5>
+        <small class="text-muted">({{ inventory_turnover_period_string }})</small>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analytics_bp.analytics_dashboard') }}" id="inventoryTurnoverFilterForm" class="mb-3">
+            <input type="hidden" name="active_tab_target" value="#inventory-analysis-pane">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="start_date_turnover" class="form-label form-label-sm">Початкова дата:</label>
+                    <input type="date" class="form-control form-control-sm" id="start_date_turnover" name="start_date_turnover" value="{{ current_start_date_turnover }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date_turnover" class="form-label form-label-sm">Кінцева дата:</label>
+                    <input type="date" class="form-control form-control-sm" id="end_date_turnover" name="end_date_turnover" value="{{ current_end_date_turnover }}">
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-funnel-fill"></i> Розрахувати
+                    </button>
+                </div>
+                 <div class="col-md-auto">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetInventoryTurnoverFilter">
+                        За замовчуванням
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+            {% if inventory_turnover_data %}
+            <table class="table table-sm table-hover table-striped">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Категорія</th>
+                        <th class="text-end">Поточний залишок (од.)</th>
+                        <th class="text-end">Продано за період (од.)</th>
+                        <th class="text-end">Коеф. оборотності</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory_turnover_data %}
+                    <tr>
+                        <td>{{ item.category_name }}</td>
+                        <td class="text-end">{{ item.current_stock }}</td>
+                        <td class="text-end">{{ item.sold_in_period }}</td>
+                        <td class="text-end">{{ item.turnover_ratio }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="alert alert-info">Немає даних для аналізу оборотності запасів.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Неходові товари #}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Неходові товари</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analytics_bp.analytics_dashboard') }}" id="deadStockFilterForm" class="mb-3">
+            <input type="hidden" name="active_tab_target" value="#inventory-analysis-pane">
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label for="dead_stock_days" class="form-label form-label-sm">Не продавалися більше (днів):</label>
+                </div>
+                <div class="col-auto">
+                    <input type="number" class="form-control form-control-sm" id="dead_stock_days" name="dead_stock_days" value="{{ current_dead_stock_days }}" min="1" style="width: 100px;">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-search"></i> Показати
+                    </button>
+                </div>
+                 <div class="col-auto">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetDeadStockFilter">
+                        За замовчуванням
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            {% if dead_stock_data %}
+            <table class="table table-sm table-hover table-striped">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>SKU</th>
+                        <th>Товар</th>
+                        <th>Категорія</th>
+                        <th class="text-end">К-сть на складі</th>
+                        <th>Ост. продаж</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dead_stock_data %}
+                    <tr>
+                        <td>{{ item.sku }}</td>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.category_name }}</td>
+                        <td class="text-end">{{ item.quantity }}</td>
+                        <td>{{ item.last_sale_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="alert alert-info mt-3">Не знайдено товарів "мертвого вантажу" за вказаними критеріями.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Прогноз закінчення запасів #}
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Прогноз закінчення запасів</h5>
+         <small class="text-muted">(на основі продажів за ост. {{ current_forecast_sales_days }} днів)</small>
+    </div>
+    <div class="card-body">
+         {# Можна додати форму для зміни forecast_sales_days, якщо це буде потрібно в майбутньому #}
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+            {% if stock_out_forecast_data %}
+            <table class="table table-sm table-hover table-striped">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Товар (SKU)</th>
+                        <th>Категорія</th>
+                        <th class="text-end">Поточ. залишок (од.)</th>
+                        <th class="text-end">Сер. ден. продажі (од.)</th>
+                        <th class="text-end">Днів до закінч.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in stock_out_forecast_data %}
+                    <tr {% if item.days_to_stock_out != "∞" and item.days_to_stock_out|float < 7 %}class="table-danger"{% elif item.days_to_stock_out != "∞" and item.days_to_stock_out|float < 30 %}class="table-warning"{% endif %}>
+                        <td>{{ item.product_sku }}</td>
+                        <td>{{ item.category_name }}</td>
+                        <td class="text-end">{{ item.current_stock }}</td>
+                        <td class="text-end">{{ item.avg_daily_sales }}</td>
+                        <td class="text-end">{{ item.days_to_stock_out }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="alert alert-info">Немає даних для прогнозу закінчення запасів.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded for _tab_sales_abc_xyz.html");
+
+    const abcXyzTableElement = document.getElementById('abcXyzTable');
+    const applyTableFiltersBtn = document.getElementById('applyAbcXyzTableFilters');
+    const resetTableFiltersBtn = document.getElementById('resetAbcXyzTableFilters');
+    const filterAbcClassSelect = document.getElementById('filterAbcClass');
+    const filterXyzClassSelect = document.getElementById('filterXyzClass');
+    const filterTextAbcXyzInput = document.getElementById('filterTextAbcXyz');
+
+    // Логування знайдених елементів
+    console.log("Table Element:", abcXyzTableElement);
+    console.log("Apply Filters Button:", applyTableFiltersBtn);
+    console.log("Reset Filters Button:", resetTableFiltersBtn);
+    console.log("ABC Select:", filterAbcClassSelect);
+    console.log("XYZ Select:", filterXyzClassSelect);
+    console.log("Text Input:", filterTextAbcXyzInput);
+
+
+    function filterAbcXyzTableRowsInternal() {
+        console.log("filterAbcXyzTableRowsInternal CALLED");
+        if (!abcXyzTableElement || !filterAbcClassSelect || !filterXyzClassSelect || !filterTextAbcXyzInput) {
+            console.error("One or more filter/table elements are missing!");
+            return;
+        }
+
+        const selectedAbc = filterAbcClassSelect.value;
+        const selectedXyz = filterXyzClassSelect.value;
+        const filterText = filterTextAbcXyzInput.value.toLowerCase().trim();
+        console.log("Current Filters:", { selectedAbc, selectedXyz, filterText });
+
+        const rows = abcXyzTableElement.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        if (!rows || rows.length === 0) {
+            console.warn("No rows found in table body or tbody is missing.");
+            return;
+        }
+
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName('td');
+            if (cells.length < 6) { // Очікуємо щонайменше 6 комірок
+                console.warn("Row with insufficient cells found:", rows[i]);
+                continue;
+            }
+            let showRow = true;
+
+            // Фільтр по ABC класу (комірка з індексом 3)
+            if (selectedAbc && cells[3].textContent.trim() !== selectedAbc) {
+                showRow = false;
+            }
+            // Фільтр по XYZ класу (комірка з індексом 4)
+            if (showRow && selectedXyz && cells[4].textContent.trim() !== selectedXyz) {
+                showRow = false;
+            }
+            // Фільтр по тексту (SKU - індекс 0, Назва товару - індекс 1)
+            if (showRow && filterText) {
+                const skuText = cells[0].textContent.toLowerCase();
+                const productNameText = cells[1].textContent.toLowerCase();
+                if (!skuText.includes(filterText) && !productNameText.includes(filterText)) {
+                    showRow = false;
+                }
+            }
+            rows[i].style.display = showRow ? '' : 'none';
+        }
+    }
+
+    if (applyTableFiltersBtn) {
+        applyTableFiltersBtn.addEventListener('click', function() {
+            console.log("Apply table filters button CLICKED");
+            filterAbcXyzTableRowsInternal();
+        });
+    } else {
+        console.error("Button with ID 'applyAbcXyzTableFilters' NOT FOUND.");
+    }
+
+    if (resetTableFiltersBtn) {
+        resetTableFiltersBtn.addEventListener('click', function() {
+            console.log("Reset table filters button CLICKED");
+            if(filterAbcClassSelect) filterAbcClassSelect.value = '';
+            if(filterXyzClassSelect) filterXyzClassSelect.value = '';
+            if(filterTextAbcXyzInput) filterTextAbcXyzInput.value = '';
+            filterAbcXyzTableRowsInternal();
+        });
+    } else {
+        console.error("Button with ID 'resetAbcXyzTableFilters' NOT FOUND.");
+    }
+
+
+    // Ініціалізація Tablesort (якщо таблиця існує)
+    if (abcXyzTableElement) {
+        try {
+            new Tablesort(abcXyzTableElement);
+            console.log("Tablesort initialized for abcXyzTable.");
+        } catch (e) {
+            console.error("Error initializing Tablesort:", e);
+        }
+    }
+
+    // Код для діаграм та інших форм (можна тимчасово закоментувати, якщо потрібно ізолювати проблему)
+    const abcPieData = {{ abc_xyz_data.abc_pie_data | tojson }};
+    const xyzPieData = {{ abc_xyz_data.xyz_pie_data | tojson }};
+    // ... (решта коду для діаграм, кнопки resetAbcXyzPeriodFilters, форми abcXyzPeriodFilterForm) ...
+    // ... (і функція preserveFiltersOnSubmit, якщо вона потрібна іншим формам на цій вкладці) ...
+    const abcColors = { 'A': 'rgba(75, 192, 192, 0.7)', 'B': 'rgba(255, 205, 86, 0.7)', 'C': 'rgba(255, 99, 132, 0.7)' };
+    const xyzColors = { 'X': 'rgba(54, 162, 235, 0.7)', 'Y': 'rgba(255, 159, 64, 0.7)', 'Z': 'rgba(153, 102, 255, 0.7)' };
+
+    const ctxAbcPie = document.getElementById('abcPieChart');
+    if (ctxAbcPie && Object.keys(abcPieData).length > 0) {
+        new Chart(ctxAbcPie.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(abcPieData),
+                datasets: [{
+                    label: 'ABC Розподіл',
+                    data: Object.values(abcPieData),
+                    backgroundColor: Object.keys(abcPieData).map(key => abcColors[key] || 'rgba(201, 203, 207, 0.7)'),
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+    } else if (ctxAbcPie) {
+         ctxAbcPie.parentNode.innerHTML = '<p class="text-center text-muted my-auto">Немає даних для ABC діаграми.</p>';
+    }
+
+    const ctxXyzPie = document.getElementById('xyzPieChart');
+    if (ctxXyzPie && Object.keys(xyzPieData).length > 0) {
+        new Chart(ctxXyzPie.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(xyzPieData),
+                datasets: [{
+                    label: 'XYZ Розподіл',
+                    data: Object.values(xyzPieData),
+                    backgroundColor: Object.keys(xyzPieData).map(key => xyzColors[key] || 'rgba(201, 203, 207, 0.7)'),
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+    } else if (ctxXyzPie) {
+        ctxXyzPie.parentNode.innerHTML = '<p class="text-center text-muted my-auto">Немає даних для XYZ діаграми.</p>';
+    }
+
+    const resetAbcXyzPeriodBtn = document.getElementById('resetAbcXyzPeriodFilters');
+    if (resetAbcXyzPeriodBtn) {
+        resetAbcXyzPeriodBtn.addEventListener('click', function() {
+            document.getElementById('start_date_abc_xyz').value = '{{ default_start_date_abc_xyz_str }}';
+            document.getElementById('end_date_abc_xyz').value = '{{ default_end_date_abc_xyz_str }}';
+            if(filterAbcClassSelect) filterAbcClassSelect.value = '';
+            if(filterXyzClassSelect) filterXyzClassSelect.value = '';
+            if(filterTextAbcXyzInput) filterTextAbcXyzInput.value = '';
+            document.getElementById('abcXyzPeriodFilterForm').submit();
+        });
+    }
+
+    const abcXyzPeriodForm = document.getElementById('abcXyzPeriodFilterForm');
+    if (abcXyzPeriodForm) {
+        abcXyzPeriodForm.addEventListener('submit', function(event) {
+            let hiddenInput = abcXyzPeriodForm.querySelector('input[name="active_tab_target"]');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'active_tab_target';
+                abcXyzPeriodForm.appendChild(hiddenInput);
+            }
+            hiddenInput.value = '#sales-analysis-pane';
+            preserveFiltersOnSubmit(this);
+        });
+    }
+});
+
+function preserveFiltersOnSubmit(currentFormElement) {
+    const allForms = [
+        { id: 'salesDynamicsFilterForm', params: ['start_date_dynamics', 'end_date_dynamics', 'comparison_type'] },
+        { id: 'abcXyzPeriodFilterForm', params: ['start_date_abc_xyz', 'end_date_abc_xyz'] },
+        { id: 'inventoryTurnoverFilterForm', params: ['start_date_turnover', 'end_date_turnover'] },
+        { id: 'deadStockFilterForm', params: ['dead_stock_days'] }
+    ];
+
+    allForms.forEach(formInfo => {
+        if (currentFormElement.id !== formInfo.id) {
+            formInfo.params.forEach(paramName => {
+                const inputElement = document.getElementById(paramName);
+                if (inputElement && !currentFormElement.querySelector(`[name="${paramName}"]`)) {
+                    let hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = paramName;
+                    hiddenInput.value = inputElement.value;
+                    currentFormElement.appendChild(hiddenInput);
+                }
+            });
+        }
+    });
+}
+</script>

@@ -1,0 +1,183 @@
+{% extends "layout.html" %}
+{% block title %}{{ title }} — StockWeavix{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ title }}</h5>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for(request.endpoint, employee_id=employee_id if is_edit else None) }}" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.employee_code.label(class="form-label") }}
+                            {{ form.employee_code(class="form-control" + (" is-invalid" if form.employee_code.errors else ""), placeholder="Напр. EMP001") }}
+                            {% if form.employee_code.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.employee_code.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.employee_last_name.label(class="form-label") }}
+                                {{ form.employee_last_name(class="form-control" + (" is-invalid" if form.employee_last_name.errors else "")) }}
+                                {% if form.employee_last_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.employee_last_name.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.employee_first_name.label(class="form-label") }}
+                                {{ form.employee_first_name(class="form-control" + (" is-invalid" if form.employee_first_name.errors else "")) }}
+                                {% if form.employee_first_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.employee_first_name.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.employee_patronymic.label(class="form-label") }}
+                            {{ form.employee_patronymic(class="form-control" + (" is-invalid" if form.employee_patronymic.errors else "")) }}
+                            {% if form.employee_patronymic.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.employee_patronymic.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.employee_email.label(class="form-label") }}
+                            {{ form.employee_email(class="form-control" + (" is-invalid" if form.employee_email.errors else ""), placeholder="example@mail.com") }}
+                            {% if form.employee_email.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.employee_email.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.employee_passport.label(class="form-label") }}
+                                {{ form.employee_passport(class="form-control" + (" is-invalid" if form.employee_passport.errors else ""), placeholder="Серія та номер паспорта") }}
+                                {% if form.employee_passport.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.employee_passport.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.employee_phone.label(class="form-label") }}
+                                {{ form.employee_phone(class="form-control" + (" is-invalid" if form.employee_phone.errors else ""), placeholder="+380XXXXXXXXX") }}
+                                {% if form.employee_phone.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.employee_phone.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.position_id.label(class="form-label") }}
+                                {{ form.position_id(class="form-select" + (" is-invalid" if form.position_id.errors else "")) }}
+                                {% if form.position_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.position_id.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.warehouse_id.label(class="form-label") }}
+                                {{ form.warehouse_id(class="form-select" + (" is-invalid" if form.warehouse_id.errors else "")) }}
+                                {% if form.warehouse_id.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.warehouse_id.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6 class="mb-3">Налаштування доступу:</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.password.label(class="form-label") }}
+                                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Введіть новий пароль") }}
+                                {% if form.password.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.password.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.password2.label(class="form-label") }}
+                                {{ form.password2(class="form-control" + (" is-invalid" if form.password2.errors else ""), placeholder="Повторіть новий пароль") }}
+                                {% if form.password2.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.password2.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="form-text mb-3">
+                            {% if is_edit %}
+                                Залиште поля паролів порожніми, якщо не бажаєте змінювати поточний пароль.
+                            {% else %}
+                                Встановіть пароль для нового працівника (мінімум 6 символів).
+                            {% endif %}
+                        </div>
+
+
+                        <div class="form-check mb-2">
+                            {{ form.is_active(class="form-check-input" + (" is-invalid" if form.is_active.errors else "")) }}
+                            {{ form.is_active.label(class="form-check-label") }}
+                            {% if form.is_active.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.is_active.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.is_admin(class="form-check-input" + (" is-invalid" if form.is_admin.errors else "")) }}
+                            {{ form.is_admin.label(class="form-check-label") }}
+                            {% if form.is_admin.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.is_admin.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <a href="{{ url_for('admin_bp.list_employees') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

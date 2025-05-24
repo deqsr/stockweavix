@@ -4,72 +4,133 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}StockWeavix{% endblock %}</title>
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Custom styles -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tablesort@5.6.0/tablesort.min.css" integrity="sha512-vW/GxLgzQdQ9gqufH3gE92kQ2n9EzQA06/q/5YuaEk+R4wY38R/nL/lJg2rLzSqSSn8EsB2kYk3UurE8BfN8xQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <!-- Navbar -->
+
   <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">StockWeavix</a>
+      <a class="navbar-brand px-5" href="{{ url_for('main.dashboard') }}">StockWeavix</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav">
+          {% if current_user.is_authenticated %}
           <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.dashboard') }}">Головна</a>
+              <a class="nav-link {% if request.blueprint == 'main' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">Головна</a>
           </li>
           <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('inv_bp.inventory_list') }}">Товари</a>
+              <a class="nav-link {% if request.blueprint == 'products_bp' %}active{% endif %}" href="{{ url_for('products_bp.list_products') }}">Товари</a>
           </li>
-          <li class="nav-item">
-              <a class="nav-link {% if request.endpoint.startswith('supplies_bp.') %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
-          </li>
+          {# ... інші пункти меню для авторизованих ... #}
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint.startswith('orders_bp.') %}active{% endif %}"
-                   href="{{ url_for('orders_bp.list_orders') }}">
-                   Замовлення
-                </a>
+              <a class="nav-link {% if request.blueprint == 'inv_bp' %}active{% endif %}" href="{{ url_for('inv_bp.inventory_list') }}">Запаси</a>
             </li>
-          <li class="nav-item"><a class="nav-link" href="#">Допомога</a></li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.blueprint == 'supplies_bp' %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
+            </li>
+              <li class="nav-item">
+                  <a class="nav-link {% if request.blueprint == 'orders_bp' %}active{% endif %}"
+                     href="{{ url_for('orders_bp.list_orders') }}">
+                     Замовлення
+                  </a>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link {% if request.blueprint == 'analytics_bp' %}active{% endif %}"
+                     href="{{ url_for('analytics_bp.analytics_dashboard') }}">
+                     Аналітика
+                  </a>
+              </li>
+          {% endif %}
         </ul>
-        <form class="d-flex ms-3">
-          <input class="form-control" type="search" placeholder="Пошук">
-        </form>
+        <ul class="navbar-nav ms-auto">
+            {% if current_user.is_authenticated %}
+             <form class="d-flex me-3" action="{{ url_for('main.dashboard')}}">
+                <input class="form-control form-control-sm" type="search" placeholder="Глобальний пошук..." name="global_search_query" aria-label="Search">
+             </form>
+             <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i>
+                    {{ current_user.EmployeeFirstName }}
+                    {% if current_user.is_admin %}<span class="badge bg-danger ms-1">Адмін</span>{% endif %}
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                    <li><a class="dropdown-item" href="#">Мій профіль</a></li>
+                    {% if current_user.is_admin %}
+                    <li><a class="dropdown-item" href="{{ url_for('admin_bp.list_employees') }}">Керування працівниками</a></li> {# Потрібно буде створити admin_bp #}
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth_bp.logout') }}">Вийти</a></li>
+                </ul>
+            </li>
+            {% else %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('auth_bp.login') }}">Увійти</a>
+            </li>
+            {% endif %}
+        </ul>
       </div>
     </div>
   </nav>
 
-  <!-- Sidebar -->
+  {% if current_user.is_authenticated %}
   <div class="sidebar">
     <ul class="nav flex-column">
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">Головна</a></li>
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'inv_bp.inventory_list' %}active{% endif %}" href="{{ url_for('inv_bp.inventory_list') }}">Товари на складі</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.blueprint == 'main' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">Головна</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.blueprint == 'products_bp' %}active{% endif %}" href="{{ url_for('products_bp.list_products') }}">Товари</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.blueprint == 'inv_bp' %}active{% endif %}" href="{{ url_for('inv_bp.inventory_list') }}">Запаси на складі</a></li>
       <li class="nav-item">
-              <a class="nav-link {% if request.endpoint.startswith('supplies_bp.') %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
+              <a class="nav-link {% if request.blueprint == 'supplies_bp' %}active{% endif %}" href="{{ url_for('supplies_bp.list_supplies') }}">Постачання</a>
       </li>
         <li class="nav-item">
-            <a class="nav-link {% if request.endpoint.startswith('orders_bp.') %}active{% endif %}"
+            <a class="nav-link {% if request.blueprint == 'orders_bp' %}active{% endif %}"
                href="{{ url_for('orders_bp.list_orders') }}">
                Замовлення
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.blueprint == 'analytics_bp' %}active{% endif %}"
+               href="{{ url_for('analytics_bp.analytics_dashboard') }}">
+               Аналітика
+            </a>
+        </li>
+        {% if current_user.is_admin %}
+        <li class="nav-item mt-auto pt-3 border-top"> {# Розділювач і вниз #}
+            <span class="nav-link text-muted small">Адміністрування</span>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.blueprint == 'admin_bp' and request.endpoint.endswith('list_employees') %}active{% endif %}"
+               href="{{ url_for('admin_bp.list_employees') }}">Працівники</a> {# Потрібно буде створити admin_bp #}
+        </li>
+        {% endif %}
     </ul>
   </div>
+  {% endif %}
 
-  <!-- Page Content -->
-  <div class="content-wrapper">
+  <div class="content-wrapper {% if not current_user.is_authenticated %}ms-0{% endif %}">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages and request.endpoint not in ['auth_bp.login'] %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </div>
 
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-  <!-- Custom JS -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tablesort/5.2.1/tablesort.min.js" integrity="sha512-q3oISNoxmDnpkMq8uG0BjfBwRjp0oV1tHq4LwPAwB77zCMzT7qEkYq22z7RRP/xJd2jU7FzPzyfB/HlX0iT+sw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
   {% block extra_js %}{% endblock %}
 </body>

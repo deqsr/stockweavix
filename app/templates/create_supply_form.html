@@ -1,14 +1,18 @@
 {% extends 'layout.html' %}
 
-{% block title %}Створення нового постачання{% endblock %}
+{% block title %}Створення нового постачання — StockWeavix{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Нове постачання</h5>
+                    <a href="{{ url_for('supplies_bp.list_supplies') }}" class="btn btn-outline-secondary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/></svg>
+                        До списку постачань
+                    </a>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('supplies_bp.create_supply_contract') }}">
@@ -25,8 +29,8 @@
                         {% endwith %}
 
                         <div class="mb-3">
-                            <label for="supplier_id" class="form-label">Постачальник <span class="text-danger">*</span></label>
-                            <select class="form-select" id="supplier_id" name="supplier_id" required>
+                            <label for="supplier_id_create_supply" class="form-label">Постачальник <span class="text-danger">*</span></label>
+                            <select class="form-select" id="supplier_id_create_supply" name="supplier_id" required>
                                 <option value="" {% if not form_data.get('supplier_id') %}selected{% endif %} disabled>Оберіть постачальника...</option>
                                 {% for supplier in all_suppliers %}
                                 <option value="{{ supplier.SupplierID }}" {% if form_data.get('supplier_id')|int == supplier.SupplierID %}selected{% endif %}>
@@ -36,11 +40,9 @@
                             </select>
                         </div>
 
-                        {# Поля для дати та статусу тна бекенді #}
-                        
                         <div class="mb-3">
-                            <label for="description" class="form-label">Опис (коментар)</label>
-                            <textarea class="form-control" id="description" name="description" rows="3">{{ form_data.get('description', '') }}</textarea>
+                            <label for="description_create_supply" class="form-label">Опис (коментар)</label>
+                            <textarea class="form-control" id="description_create_supply" name="description" rows="3">{{ form_data.get('description', '') }}</textarea>
                         </div>
                         
                         <div class="alert alert-info small">

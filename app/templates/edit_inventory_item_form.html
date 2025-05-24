@@ -1,0 +1,304 @@
+{% extends 'layout.html' %}
+
+{% block title %}Редагування Запису #{{ inventory_item.InventoryID }} — StockWeavix{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Редагування Запису #{{ inventory_item.InventoryID }}</h5>
+                     <a href="{{ url_for('inv_bp.view_inventory_item', inventory_id=inventory_item.InventoryID) }}" class="btn btn-outline-secondary btn-sm">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/></svg>
+                        До перегляду
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('inv_bp.edit_inventory_item', inventory_id=inventory_item.InventoryID) }}" id="editInventoryItemForm">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            <label class="form-label">Товар:</label>
+                            <input type="text" class="form-control"
+                                   value="{{ inventory_item.product.ProductName if inventory_item.product else 'N/A' }} (SKU: {{ inventory_item.product.SKU if inventory_item.product else 'N/A' }})"
+                                   readonly disabled>
+                            <input type="hidden" name="product_id" value="{{ inventory_item.ProductID }}">
+                        </div>
+
+                        {# --- Покроковий вибір локації --- #}
+                        <h6 class="mt-4">Вибір Локації:</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="warehouse_select_edit" class="form-label">1. Склад <span class="text-danger">*</span></label>
+                                <select class="form-select location-component-select" id="warehouse_select_edit" name="warehouse_filter">
+                                    <option value="" selected disabled>Оберіть склад...</option>
+                                    {# Заповнюється через JS, потім обирається значення з inventory_item #}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="zone_select_edit" class="form-label">2. Зона</label>
+                                <select class="form-select location-component-select" id="zone_select_edit" name="zone_filter" disabled>
+                                    <option value="" selected disabled>Спочатку оберіть склад...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="row_select_edit" class="form-label">3. Ряд</label>
+                                <select class="form-select location-component-select" id="row_select_edit" name="row_filter" disabled>
+                                    <option value="" selected disabled>Спочатку оберіть зону...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="section_select_edit" class="form-label">4. Секція (опц.)</label>
+                                <select class="form-select location-component-select" id="section_select_edit" name="section_filter" disabled>
+                                     <option value="" selected>Будь-яка / Немає</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="shelf_select_edit" class="form-label">5. Полиця (опц.)</label>
+                                <select class="form-select location-component-select" id="shelf_select_edit" name="shelf_filter" disabled>
+                                    <option value="" selected>Будь-яка / Немає</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location_id_inv_edit" class="form-label">6. Фінальна Локація <span class="text-danger">*</span></label>
+                            <select class="form-select" id="location_id_inv_edit" name="location_id" required disabled>
+                                <option value="" selected disabled>Оберіть компоненти вище...</option>
+                                {# Попереднє значення буде завантажено JS, якщо є #}
+                                {% if inventory_item.location %}
+                                <option value="{{ inventory_item.LocationID }}" selected>{{ inventory_item.location.full_address() }} (ID: {{ inventory_item.LocationID }})</option>
+                                {% endif %}
+                            </select>
+                             <div id="locationSpinnerEdit" class="spinner-border spinner-border-sm text-primary ms-2" role="status" style="display: none;">
+                                <span class="visually-hidden">Завантаження...</span>
+                            </div>
+                            <div id="locationHelpEdit" class="form-text">Оберіть компоненти локації, щоб побачити доступні варіанти.</div>
+                        </div>
+                        {# --- Кінець покрокового вибору локації --- #}
+
+                        <div class="mb-3">
+                            <label for="quantity_inv_edit" class="form-label">Кількість <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="quantity_inv_edit" name="quantity"
+                                   value="{{ form_data.get('quantity', inventory_item.Quantity) }}" min="0" step="1" required>
+                            <div class="form-text">Якщо кількість 0, запис може бути видалений (залежить від логіки).</div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-3">
+                            <a href="{{ url_for('inv_bp.view_inventory_item', inventory_id=inventory_item.InventoryID) }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const warehouseSelect = document.getElementById('warehouse_select_edit');
+    const zoneSelect = document.getElementById('zone_select_edit');
+    const rowSelect = document.getElementById('row_select_edit');
+    const sectionSelect = document.getElementById('section_select_edit');
+    const shelfSelect = document.getElementById('shelf_select_edit');
+    const finalLocationSelect = document.getElementById('location_id_inv_edit');
+    const locationSpinner = document.getElementById('locationSpinnerEdit');
+    const locationHelp = document.getElementById('locationHelpEdit');
+
+    // Попередньо вибрані значення з inventory_item (якщо є)
+    const preselectedWarehouseId = "{{ inventory_item.location.warehouse.WarehouseID if inventory_item.location and inventory_item.location.warehouse else '' }}";
+    const preselectedZoneId = "{{ inventory_item.location.row.zone.ZoneID if inventory_item.location and inventory_item.location.row and inventory_item.location.row.zone else '' }}";
+    const preselectedRowId = "{{ inventory_item.location.row.ZoneRowID if inventory_item.location and inventory_item.location.row else '' }}";
+    const preselectedSectionId = "{{ inventory_item.location.section.SectionID if inventory_item.location and inventory_item.location.section else '' }}";
+    const preselectedShelfId = "{{ inventory_item.location.shelf.ShelfID if inventory_item.location and inventory_item.location.shelf else '' }}";
+    const preselectedLocationId = "{{ inventory_item.LocationID }}";
+
+    function resetSelect(selectElement, defaultOptionText = 'Оберіть...') {
+        selectElement.innerHTML = `<option value="" selected disabled>${defaultOptionText}</option>`;
+        if (selectElement !== warehouseSelect) {
+             selectElement.disabled = true;
+        }
+    }
+
+    function populateSelect(selectElement, data, valueField, textField, preselectedValue = null, includeEmptyOption = true, emptyOptionText = 'Будь-який(а)') {
+        selectElement.innerHTML = '';
+        if (includeEmptyOption && emptyOptionText) { // Додаємо пустий варіант, якщо emptyOptionText надано
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = emptyOptionText; // "Будь-яка" або "Оберіть..."
+            selectElement.appendChild(emptyOpt);
+        }
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item[valueField];
+            option.textContent = item[textField];
+            if (preselectedValue && item[valueField].toString() === preselectedValue.toString()) {
+                option.selected = true;
+            }
+            selectElement.appendChild(option);
+        });
+        selectElement.disabled = false;
+    }
+
+    async function fetchAndPopulate(url, selectElement, valueField, textField, preselectedValue = null, dependentSelects = [], emptyOptionTextForDependent = 'Будь-який(а)', emptyOptionTextCurrent = `Оберіть...`) {
+        selectElement.disabled = true;
+        locationSpinner.style.display = 'inline-block';
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                 populateSelect(selectElement, data, valueField, textField, preselectedValue, true, emptyOptionTextCurrent);
+                 selectElement.disabled = false;
+            } else {
+                 resetSelect(selectElement, `Немає ${textField.toLowerCase()}`);
+                 selectElement.disabled = true;
+            }
+
+            dependentSelects.forEach(sel => {
+                 if (sel === finalLocationSelect) {
+                    resetSelect(sel, 'Оберіть компоненти вище...');
+                 } else {
+                    resetSelect(sel, emptyOptionTextForDependent);
+                 }
+            });
+            if (preselectedValue && selectElement.value === preselectedValue.toString()) {
+                selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+        } catch (error) {
+            console.error(`Error fetching ${selectElement.id}:`, error);
+            resetSelect(selectElement, 'Помилка завантаження');
+            selectElement.disabled = true;
+        } finally {
+            locationSpinner.style.display = 'none';
+            if (!preselectedValue || (preselectedValue && selectElement.value === preselectedValue.toString())) {
+                filterFinalLocations(preselectedLocationId); // Pass preselectedLocationId here
+            }
+        }
+    }
+
+    // Initial load for Warehouses
+    fetchAndPopulate("{{ url_for('inv_bp.api_get_warehouses') }}", warehouseSelect, 'WarehouseID', 'WarehouseName', preselectedWarehouseId, [zoneSelect, rowSelect, sectionSelect, shelfSelect, finalLocationSelect], 'Оберіть склад...');
+
+    warehouseSelect.addEventListener('change', function () {
+        resetSelect(zoneSelect, 'Спочатку оберіть склад...');
+        resetSelect(rowSelect, 'Спочатку оберіть зону...');
+        resetSelect(sectionSelect, 'Будь-яка / Немає');
+        resetSelect(shelfSelect, 'Будь-яка / Немає');
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+        sectionSelect.disabled = true;
+        shelfSelect.disabled = true;
+
+        if (this.value) {
+            const selectedVal = (this.value === preselectedWarehouseId) ? preselectedZoneId : null;
+            fetchAndPopulate(`{{ url_for('inv_bp.api_get_zones') }}?warehouse_id=${this.value}`, zoneSelect, 'ZoneID', 'ZoneName', selectedVal, [rowSelect, sectionSelect, shelfSelect, finalLocationSelect], 'Оберіть зону...');
+        }
+        filterFinalLocations();
+    });
+
+    zoneSelect.addEventListener('change', function () {
+        resetSelect(rowSelect, 'Спочатку оберіть зону...');
+        resetSelect(sectionSelect, 'Будь-яка / Немає');
+        resetSelect(shelfSelect, 'Будь-яка / Немає');
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+        sectionSelect.disabled = true;
+        shelfSelect.disabled = true;
+
+        if (this.value) {
+            const selectedVal = (this.value === preselectedZoneId) ? preselectedRowId : null;
+            fetchAndPopulate(`{{ url_for('inv_bp.api_get_rows') }}?zone_id=${this.value}`, rowSelect, 'ZoneRowID', 'RowNumber', selectedVal, [sectionSelect, shelfSelect, finalLocationSelect], 'Оберіть ряд...');
+        }
+        filterFinalLocations();
+    });
+
+    rowSelect.addEventListener('change', function () {
+        resetSelect(sectionSelect, 'Будь-яка / Немає');
+        resetSelect(shelfSelect, 'Будь-яка / Немає');
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+
+        if (this.value) {
+            const sectionSelectedVal = (this.value === preselectedRowId) ? preselectedSectionId : null;
+            const shelfSelectedVal = (this.value === preselectedRowId) ? preselectedShelfId : null;
+            fetchAndPopulate(`{{ url_for('inv_bp.api_get_sections') }}?row_id=${this.value}`, sectionSelect, 'SectionID', 'SectionNumber', sectionSelectedVal, [shelfSelect, finalLocationSelect], 'Будь-яка / Немає');
+            fetchAndPopulate(`{{ url_for('inv_bp.api_get_shelves') }}?row_id=${this.value}`, shelfSelect, 'ShelfID', 'ShelfLevel', shelfSelectedVal, [finalLocationSelect], 'Будь-яка / Немає');
+        } else {
+            sectionSelect.disabled = true;
+            shelfSelect.disabled = true;
+        }
+        filterFinalLocations();
+    });
+
+    sectionSelect.addEventListener('change', function() {
+        filterFinalLocations();
+    });
+    shelfSelect.addEventListener('change', function() {
+        filterFinalLocations();
+    });
+
+    async function filterFinalLocations(selectedLocationId = null) {
+        const warehouseId = warehouseSelect.value;
+        const zoneId = zoneSelect.value;
+        const rowId = rowSelect.value;
+        const sectionId = sectionSelect.value;
+        const shelfId = shelfSelect.value;
+
+        if (!warehouseId) {
+            resetSelect(finalLocationSelect, 'Спочатку оберіть склад...');
+            locationHelp.textContent = 'Оберіть склад для завантаження локацій.';
+            return;
+        }
+
+        let filterUrl = new URL("{{ url_for('inv_bp.api_filter_locations', _external=True) }}");
+        if(warehouseId) filterUrl.searchParams.append('warehouse_id', warehouseId);
+        if(zoneId) filterUrl.searchParams.append('zone_id', zoneId);
+        if(rowId) filterUrl.searchParams.append('row_id', rowId);
+        if(sectionId) filterUrl.searchParams.append('section_id', sectionId);
+        if(shelfId) filterUrl.searchParams.append('shelf_id', shelfId);
+
+        finalLocationSelect.disabled = true;
+        locationSpinner.style.display = 'inline-block';
+        locationHelp.textContent = 'Завантаження доступних локацій...';
+
+        try {
+            const response = await fetch(filterUrl.toString());
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const locations = await response.json();
+
+            finalLocationSelect.innerHTML = '';
+            if (locations && locations.length > 0) {
+                populateSelect(finalLocationSelect, locations, 'LocationID', 'full_address', selectedLocationId, false); // no "any" option
+                finalLocationSelect.disabled = false;
+                locationHelp.textContent = `Знайдено ${locations.length} локацій. Оберіть одну.`;
+            } else {
+                resetSelect(finalLocationSelect, 'Локацій не знайдено');
+                finalLocationSelect.disabled = true;
+                locationHelp.textContent = 'За обраними критеріями локацій не знайдено.';
+            }
+        } catch (error) {
+            console.error('Error fetching final locations:', error);
+            resetSelect(finalLocationSelect, 'Помилка завантаження локацій');
+            locationHelp.textContent = 'Помилка при завантаженні локацій.';
+        } finally {
+            locationSpinner.style.display = 'none';
+        }
+    }
+});
+</script>
+{% endblock %}

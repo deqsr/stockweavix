@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+
+{% block title %}Редагування Товару #{{ product.ProductID }} — StockWeavix{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Редагування Товару #{{ product.ProductID }}</h5>
+                     <a href="{{ url_for('products_bp.view_product', product_id=product.ProductID) }}" class="btn btn-outline-secondary btn-sm">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-short" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/></svg>
+                        До перегляду
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('products_bp.edit_product', product_id=product.ProductID) }}">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            <label for="product_name_edit" class="form-label">Назва Товару <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="product_name_edit" name="product_name" value="{{ form_data.get('product_name', product.ProductName) }}" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="sku_edit" class="form-label">SKU (Артикул)</label>
+                                <input type="text" class="form-control" id="sku_edit" name="sku_display" value="{{ product.SKU }}" readonly>
+                                 <div class="form-text">SKU генерується автоматично і не редагується.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="price_edit" class="form-label">Ціна (₴)</label>
+                                <input type="text" class="form-control" id="price_edit" name="price" value="{{ form_data.get('price', product.Price|string if product.Price is not none else '') }}" pattern="^\d*([.,]\d{1,2})?$" placeholder="0.00 або пусто">
+                                <div class="form-text">Залиште пустим, щоб видалити ціну.</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id_edit" class="form-label">Категорія <span class="text-danger">*</span></label>
+                                <select class="form-select" id="category_id_edit" name="category_id" required>
+                                    <option value="" disabled>Оберіть категорію...</option>
+                                    {% for category_item in all_categories %}
+                                    <option value="{{ category_item.CategoryID }}"
+                                            {% if form_data.get('category_id')|string == category_item.CategoryID|string or (not form_data and product.ProductCategoryID|string == category_item.CategoryID|string) %}selected{% endif %}>
+                                        {{ category_item.CategoryName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="manufacturer_id_edit" class="form-label">Виробник</label>
+                                <select class="form-select" id="manufacturer_id_edit" name="manufacturer_id">
+                                    <option value="">Не обрано</option>
+                                    {% for mfg_item in all_manufacturers %}
+                                    <option value="{{ mfg_item.ManufacturerID }}"
+                                            {% if form_data.get('manufacturer_id')|string == mfg_item.ManufacturerID|string or (not form_data and product.ManufacturerID|string == mfg_item.ManufacturerID|string) %}selected{% endif %}>
+                                        {{ mfg_item.ManufacturerName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description_edit_prod" class="form-label">Опис Товару</label>
+                            <textarea class="form-control" id="description_edit_prod" name="description" rows="3">{{ form_data.get('description', product.ProductDescription or '') }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('products_bp.view_product', product_id=product.ProductID) }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Зберегти Зміни</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

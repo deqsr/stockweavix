@@ -1,0 +1,124 @@
+{% extends 'layout.html' %}
+
+{% block title %}Аналітика — StockWeavix{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nav-tabs .nav-link {
+        color: #495057;
+        border: 1px solid transparent;
+        border-top-left-radius: .3rem;
+        border-top-right-radius: .3rem;
+    }
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        background-color: #fff;
+        border-color: #dee2e6 #dee2e6 #fff;
+        font-weight: 500;
+    }
+    .nav-tabs .nav-link:hover:not(.active) {
+        border-color: #e9ecef #e9ecef #dee2e6;
+        isolation: isolate;
+    }
+    .tab-content > .tab-pane {
+        padding: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        background-color: #fff;
+        border-bottom-left-radius: .3rem;
+        border-bottom-right-radius: .3rem;
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+    }
+    .table-sm th, .table-sm td {
+        padding: 0.4rem;
+    }
+    .table thead.sticky-top th {
+        background-color: #f8f9fa; /* Або var(--bs-light) чи var(--bs-table-bg) залежно від теми Bootstrap */
+        /* z-index: 10; /* Може знадобитися для деяких випадків */
+    }
+    .table-responsive {
+        background-color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h3 class="mb-4">Аналітика</h3>
+
+    <ul class="nav nav-tabs" id="analyticsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            {# Додаємо .active якщо initial_active_tab відповідає цій вкладці #}
+            <button class="nav-link {% if initial_active_tab == '#overview-pane' %}active{% endif %}" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-pane" type="button" role="tab" aria-controls="overview-pane" aria-selected="{% if initial_active_tab == '#overview-pane' %}true{% else %}false{% endif %}">Загальний Огляд</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if initial_active_tab == '#sales-analysis-pane' %}active{% endif %}" id="sales-analysis-tab" data-bs-toggle="tab" data-bs-target="#sales-analysis-pane" type="button" role="tab" aria-controls="sales-analysis-pane" aria-selected="{% if initial_active_tab == '#sales-analysis-pane' %}true{% else %}false{% endif %}">Аналіз Продажів</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if initial_active_tab == '#inventory-analysis-pane' %}active{% endif %}" id="inventory-analysis-tab" data-bs-toggle="tab" data-bs-target="#inventory-analysis-pane" type="button" role="tab" aria-controls="inventory-analysis-pane" aria-selected="{% if initial_active_tab == '#inventory-analysis-pane' %}true{% else %}false{% endif %}">Аналіз Запасів</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="analyticsTabContent">
+        <div class="tab-pane fade {% if initial_active_tab == '#overview-pane' %}show active{% endif %}" id="overview-pane" role="tabpanel" aria-labelledby="overview-tab" tabindex="0">
+            {% include 'analytics/_tab_overview_sales_dynamics.html' %}
+        </div>
+        <div class="tab-pane fade {% if initial_active_tab == '#sales-analysis-pane' %}show active{% endif %}" id="sales-analysis-pane" role="tabpanel" aria-labelledby="sales-analysis-tab" tabindex="0">
+            {% include 'analytics/_tab_sales_abc_xyz.html' %}
+        </div>
+        <div class="tab-pane fade {% if initial_active_tab == '#inventory-analysis-pane' %}show active{% endif %}" id="inventory-analysis-pane" role="tabpanel" aria-labelledby="inventory-analysis-tab" tabindex="0">
+            {% include 'analytics/_tab_inventory_analysis.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var triggerTabList = [].slice.call(document.querySelectorAll('#analyticsTab button'));
+    triggerTabList.forEach(function(triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl);
+        triggerEl.addEventListener('click', function(event) {
+            event.preventDefault();
+            localStorage.setItem('activeAnalyticsTab', this.getAttribute('data-bs-target'));
+            tabTrigger.show();
+        });
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('active_tab_target')) { // Якщо немає параметра в URL
+        var activeTabFromStorage = localStorage.getItem('activeAnalyticsTab');
+        var initialTabFromServer = "{{ initial_active_tab }}"; // Отримуємо з бекенду
+
+        var targetTabSelector = activeTabFromStorage ? activeTabFromStorage : initialTabFromServer;
+
+        if (targetTabSelector) {
+            triggerTabList.forEach(function(btn) { btn.classList.remove('active'); btn.setAttribute('aria-selected', 'false'); });
+            document.querySelectorAll('#analyticsTabContent .tab-pane').forEach(function(pane) { pane.classList.remove('show', 'active'); });
+
+            var tabButtonToActivate = document.querySelector('button[data-bs-target="' + targetTabSelector + '"]');
+            var tabPanelToActivate = document.querySelector(targetTabSelector);
+
+            if (tabButtonToActivate && tabPanelToActivate) {
+                tabButtonToActivate.classList.add('active');
+                tabButtonToActivate.setAttribute('aria-selected', 'true');
+                tabPanelToActivate.classList.add('show', 'active');
+            } else if (initialTabFromServer) {
+                 var defaultTabButton = document.querySelector('button[data-bs-target="' + initialTabFromServer + '"]');
+                 var defaultTabPane = document.querySelector(initialTabFromServer);
+                 if(defaultTabButton && defaultTabPane) {
+                    defaultTabButton.classList.add('active');
+                    defaultTabButton.setAttribute('aria-selected', 'true');
+                    defaultTabPane.classList.add('show', 'active');
+                 }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

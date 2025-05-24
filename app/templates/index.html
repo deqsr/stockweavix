@@ -8,93 +8,100 @@
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Нові замовлення (за місяць KPI)</h6>
-        <h2>{{ curr_orders_kpi }}</h2>
-        <small class="{{ order_growth_class }}">{{ order_growth_text }}</small>
+        <h2>{{ kpi_orders_current }}</h2>
+        <small class="{{ kpi_order_growth_style }}">{{ kpi_order_growth_text }}</small>
       </div>
     </div>
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Продажі (за місяць KPI)</h6>
-        <h2>{{ curr_sales_kpi }} ₴</h2>
-        <small class="{{ sales_growth_class }}">{{ sales_growth_text }}</small>
+        <h2>{{ kpi_sales_current_display }} ₴</h2>
+        <small class="{{ kpi_sales_growth_style }}">{{ kpi_sales_growth_text }}</small>
       </div>
     </div>
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Загальна кількість замовлень (всього)</h6>
-        <h2>{{ total_orders_all_time }}</h2>
+        <h2>{{ total_orders_ever }}</h2>
         <small class="text-secondary"><br></small>
       </div>
     </div>
   </div>
 
-  <!-- Chart and Filters -->
+  <!-- Chart and Filters Section -->
   <div class="row mt-4">
     <div class="col">
       <div class="card shadow-sm">
-        <div class="card-header">Динаміка продажів та кількості</div>
-        <div class="card-body">
-          <canvas id="salesAndQuantityChart" style="min-height: 300px; max-height: 400px;"></canvas>
+        <div class="card-header">
+          Динаміка продажів та кількості
         </div>
-        <div class="card-footer filters-card p-3">
-          <form id="chartFilterForm" method="GET" action="{{ url_for('main.dashboard') }}" class="row g-3 align-items-end">
-            <div class="col-md-3">
-              <label for="start_date_chart" class="form-label">Початкова дата:</label>
-              <input type="date" class="form-control form-control-sm filter-input" id="start_date_chart" name="start_date_chart" value="{{ start_date_chart_form }}">
+        <div class="card-body">
+          <form id="chartFilterForm" class="row row-cols-sm-auto g-3 align-items-center mb-3 flex-wrap">
+            <div class="col-12">
+              <label class="form-label-sm visually-hidden" for="startDateInput">Початкова дата:</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">Від</span>
+                <input type="date" class="form-control form-control-sm" id="startDateInput" name="start_date_chart" value="{{ form_chart_start_val }}">
+              </div>
             </div>
-            <div class="col-md-3">
-              <label for="end_date_chart" class="form-label">Кінцева дата:</label>
-              <input type="date" class="form-control form-control-sm filter-input" id="end_date_chart" name="end_date_chart" value="{{ end_date_chart_form }}">
+            <div class="col-12">
+              <label class="form-label-sm visually-hidden" for="endDateInput">Кінцева дата:</label>
+               <div class="input-group input-group-sm">
+                <span class="input-group-text">До</span>
+                <input type="date" class="form-control form-control-sm" id="endDateInput" name="end_date_chart" value="{{ form_chart_end_val }}">
+              </div>
             </div>
-            <div class="col-md-2">
-              <label for="category_id_chart" class="form-label">Категорія:</label>
-              <select class="form-select form-select-sm filter-input" id="category_id_chart" name="category_id_chart">
-                <option value="">Всі категорії</option>
-                {% for category in categories_filter_data %}
-                <option value="{{ category.CategoryID }}" {% if category.CategoryID == selected_category_id_chart_form %}selected{% endif %}>
-                  {{ category.CategoryName }}
-                </option>
+            <div class="col-12">
+              <label class="form-label-sm visually-hidden" for="categorySelect">Категорія:</label>
+              <select class="form-select form-select-sm" id="categorySelect" name="category_filter" aria-label="Категорія">
+                <option value="all" {% if form_selected_category == 'all' %}selected{% endif %}>Всі категорії</option>
+                {% for cat_id, cat_name in all_categories_for_filter %}
+                <option value="{{ cat_id }}" {% if form_selected_category == cat_id|string %}selected{% endif %}>{{ cat_name }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-2">
-              <label for="manufacturer_id_chart" class="form-label">Виробник:</label>
-              <select class="form-select form-select-sm filter-input" id="manufacturer_id_chart" name="manufacturer_id_chart">
-                <option value="">Всі виробники</option>
-                {% for manufacturer in manufacturers_filter_data %}
-                <option value="{{ manufacturer.ManufacturerID }}" {% if manufacturer.ManufacturerID == selected_manufacturer_id_chart_form %}selected{% endif %}>
-                  {{ manufacturer.ManufacturerName }}
-                </option>
+            <div class="col-12">
+              <label class="form-label-sm visually-hidden" for="manufacturerSelect">Виробник:</label>
+              <select class="form-select form-select-sm" id="manufacturerSelect" name="manufacturer_filter" aria-label="Виробник">
+                <option value="all" {% if form_selected_manufacturer == 'all' %}selected{% endif %}>Всі виробники</option>
+                {% for mfg_id, mfg_name in all_manufacturers_for_filter %}
+                <option value="{{ mfg_id }}" {% if form_selected_manufacturer == mfg_id|string %}selected{% endif %}>{{ mfg_name }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-2">
-              <button type="button" id="resetChartFilters" class="btn btn-outline-secondary btn-sm w-100">За замовчуванням</button>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary btn-sm">Підтвердити</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="resetFiltersButton">Скинути</button>
             </div>
           </form>
+          <div id="chartBox" style="position: relative; height:40vh; width:100%">
+              <canvas id="mainChartCanvas"></canvas>
+              <div id="chartMessageOverlay" class="text-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; font-style: italic; background-color: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px;">
+                  {% if chart_no_data_message %}{{ chart_no_data_message }}{% endif %}
+              </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-
   <!-- Recent Supplies and Zone Occupancy -->
   <div class="row mt-4 g-3">
     <div class="col-md-6">
       <div class="card shadow-sm">
-        <div class="card-header">Прийом постачань (останні 7)</div>
+        <div class="card-header">Прийом постачань (останні 5)</div>
         <div class="card-body px-3" style="max-height: 300px; overflow-y: auto;">
           <table class="table table-fixed table-sm table-hover mb-0">
             <thead class="table-light sticky-top">
-              <tr><th>ID</th><th>Дата</th><th>Статус</th><th class="text-end">Δ Ціни</th></tr>
+              <tr><th>ID</th><th>Дата</th><th>Статус</th><th class="text-end">Сума (₴)</th></tr>
             </thead>
             <tbody>
-              {% for s in supplies_table_data %}
+              {% for supply_item in supplies_for_table %}
               <tr>
-                <td>{{ s.id }}</td>
-                <td>{{ s.date }}</td>
-                <td><span class="badge {{ s.status_class }}">{{ s.status }}</span></td>
-                <td class="text-end {{ s.change_class }}">{{ s.change_text }}</td>
+                <td>{{ supply_item.id }}</td>
+                <td>{{ supply_item.date }}</td>
+                <td><span class="badge {{ supply_item.status_class }}">{{ supply_item.status }}</span></td>
+                <td class="text-end">{{ "%.2f"|format(supply_item.price|float) }}</td>
               </tr>
               {% else %}
               <tr><td colspan="4" class="text-center py-3">Немає даних про постачання</td></tr>
@@ -106,24 +113,24 @@
     </div>
     <div class="col-md-6">
       <div class="card shadow-sm">
-        <div class="card-header">Рівень завантаження зон (топ 7)</div>
+        <div class="card-header">Рівень завантаження зон (топ 5)</div>
          <div class="card-body px-3" style="max-height: 300px; overflow-y: auto;">
           <table class="table table-fixed table-sm table-hover mb-0">
             <thead class="table-light sticky-top">
               <tr><th>Зона</th><th>Всього місць</th><th>Зайнято місць</th><th>% Завантаження</th></tr>
             </thead>
             <tbody>
-              {% for z in zones_table_data %}
+              {% for zone_item in zones_for_table %}
               <tr>
-                <td>{{ z.zone }}</td>
-                <td>{{ z.total_locations }}</td>
-                <td>{{ z.occupied_locations }}</td>
+                <td>{{ zone_item.zone_name }}</td>
+                <td>{{ zone_item.total_locations }}</td>
+                <td>{{ zone_item.occupied_locations }}</td>
                 <td>
-                    <div class="progress" style="height: 20px;" title="{{ z.used_pct_text }}">
-                        <div class="progress-bar {% if z.used_pct_val >= 80 %}bg-danger{% elif z.used_pct_val >= 50 %}bg-warning{% else %}bg-success{% endif %}"
-                             role="progressbar" style="width: {{ z.used_pct_val }}%;"
-                             aria-valuenow="{{ z.used_pct_val }}" aria-valuemin="0" aria-valuemax="100">
-                             {{ z.used_pct_text }}
+                    <div class="progress" style="height: 20px;" title="{{ zone_item.usage_percent_text }}">
+                        <div class="progress-bar {% if zone_item.usage_percent_value >= 80 %}bg-danger{% elif zone_item.usage_percent_value >= 50 %}bg-warning{% else %}bg-success{% endif %}"
+                             role="progressbar" style="width: {{ zone_item.usage_percent_value }}%;"
+                             aria-valuenow="{{ zone_item.usage_percent_value }}" aria-valuemin="0" aria-valuemax="100">
+                             {{ zone_item.usage_percent_text }}
                         </div>
                     </div>
                 </td>
@@ -143,17 +150,17 @@
     <div class="col">
       <div class="card shadow-sm">
         <div class="card-header">Топ міст (за останній рік, Δ% до попереднього року)</div>
-        <div class="card-body px-3" style="max-height: 300px; overflow-y: auto;">
+        <div class="table-responsive px-3" style="max-height: 300px; overflow-y: auto;">
           <table class="table table-fixed table-sm table-hover mb-0">
             <thead class="table-light sticky-top">
               <tr><th>Місто</th><th class="text-center">Замовлень за рік</th><th class="text-end">Δ% (до попер. року)</th></tr>
             </thead>
             <tbody>
-              {% for c in top_cities_table_data %}
+              {% for city_item in top_cities_for_table %}
               <tr>
-                <td>{{ c.city }}</td>
-                <td class="text-center">{{ c.cnt }}</td>
-                <td class="text-end {{ c.change_class }}">{{ c.change_text }}</td>
+                <td>{{ city_item.city_name }}</td>
+                <td class="text-center">{{ city_item.order_count }}</td>
+                <td class="text-end {{ city_item.growth_style }}">{{ city_item.growth_text }}</td>
               </tr>
               {% else %}
               <tr><td colspan="3" class="text-center py-3">Немає даних по містах</td></tr>
@@ -168,199 +175,164 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Елементи форми фільтрів
-    const chartFilterForm = document.getElementById('chartFilterForm'); // Сама форма
-    const filterInputs = chartFilterForm.querySelectorAll('.filter-input'); // Всі поля з класом filter-input
-    const resetChartFiltersButton = document.getElementById('resetChartFilters');
+    const chartCanvas = document.getElementById('mainChartCanvas').getContext('2d');
+    const chartMessageDiv = document.getElementById('chartMessageOverlay');
+    let mainSalesChart;
 
-    const startDateInput = document.getElementById('start_date_chart');
-    const endDateInput = document.getElementById('end_date_chart');
-    const categoryInput = document.getElementById('category_id_chart');
-    const manufacturerInput = document.getElementById('manufacturer_id_chart');
+    const chartInitialData = {
+        labels: {{ chart_initial_labels|tojson|safe }},
+        datasets: [
+            {
+                label: 'Сума продажів (₴)',
+                data: {{ chart_initial_sales_data|tojson|safe }},
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                yAxisID: 'ySales',
+                tension: 0.1,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                fill: true
+            },
+            {
+                label: 'Кількість продано (од.)',
+                data: {{ chart_initial_quantity_data|tojson|safe }},
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                yAxisID: 'yQuantity',
+                tension: 0.1,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                fill: true
+            }
+        ]
+    };
 
-    let salesAndQuantityChartInstance = null; // екземпляр графіка
+    function drawChart(chartConfig) {
+        if (mainSalesChart) {
+            mainSalesChart.destroy();
+        }
 
-    // оновлення графіка через AJAX
-    function updateChartWithFilters() {
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
-        const categoryId = categoryInput.value;
-        const manufacturerId = manufacturerInput.value;
+        const noDataAvailable = !chartConfig.labels || chartConfig.labels.length === 0;
+        chartMessageDiv.style.display = noDataAvailable ? 'block' : 'none';
 
-        // URL для AJAX-запиту до API endpoint
-        const apiUrl = `{{ url_for('main.api_chart_data') }}?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}&category_id=${encodeURIComponent(categoryId)}&manufacturer_id=${encodeURIComponent(manufacturerId)}`;
+        if(noDataAvailable && chartConfig.messageContent) {
+            chartMessageDiv.textContent = chartConfig.messageContent;
+        } else if (noDataAvailable) {
+             chartMessageDiv.textContent = 'Немає даних за вибраний період';
+        }
 
-        // Робимо fetch запит
-        fetch(apiUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (salesAndQuantityChartInstance && data) {
-                    // дані існуючого графіка
-                    salesAndQuantityChartInstance.data.labels = data.labels;
-                    salesAndQuantityChartInstance.data.datasets[0].data = data.sales_values;
-                    salesAndQuantityChartInstance.data.datasets[1].data = data.quantity_values;
-                    salesAndQuantityChartInstance.update();
-                } else if (!data) {
-                    console.error('Received empty data from API for chart.');
-                }
-            })
-            .catch(error => console.error('Error fetching or parsing chart data:', error));
-    }
-
-    // обробники подій до полів фільтра
-    filterInputs.forEach(input => {
-        input.addEventListener('change', function () {
-            updateChartWithFilters(); //  оновлення через AJAX
-        });
-    });
-
-    // кнопки за замовчуванням
-    if (resetChartFiltersButton) {
-        resetChartFiltersButton.addEventListener('click', function () {
-            // значення дефолтні (з Flask)
-            startDateInput.value = "{{ default_start_date_chart_str }}";
-            endDateInput.value = "{{ default_end_date_chart_str }}";
-            categoryInput.value = "";
-            manufacturerInput.value = "";
-
-            updateChartWithFilters();
-        });
-    }
-
-    // Ініціалізація графіка Chart.js
-    const ctxSalesQty = document.getElementById('salesAndQuantityChart');
-    if (ctxSalesQty) {
-        salesAndQuantityChartInstance = new Chart(ctxSalesQty.getContext('2d'), {
-            type: 'line', // Тип графіка
+        mainSalesChart = new Chart(chartCanvas, {
+            type: 'line',
             data: {
-                labels: {{ chart_labels|tojson }},       // Початкові мітки осі X
-                datasets: [
-                    {
-                        label: 'Сума продажів (₴)',
-                        data: {{ chart_sales_values|tojson }}, // Початкові дані для продажів
-                        borderColor: 'rgba(54, 162, 235, 1)', // Колір лінії
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        yAxisID: 'ySales', // Прив'язка до осі Y для продажів
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5
-                    },
-                    {
-                        label: 'Кількість продано (од.)',
-                        data: {{ chart_quantity_values|tojson }}, // Початкові дані для кількості
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        yAxisID: 'yQuantity', // Прив'язка до осі Y для кількості
-                        tension: 0.1,
-                        fill: false,
-                        pointRadius: 3,
-                        pointHoverRadius: 5
-                    }
-                ]
+                labels: chartConfig.labels,
+                datasets: chartConfig.datasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false, },
                 scales: {
-                    ySales: { // Налаштування лівої осі Y (для продажів)
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
+                    x: { title: { display: true, text: 'Дата' } },
+                    ySales: {
+                        type: 'linear', display: true, position: 'left',
+                        title: { display: true, text: 'Сума продажів (₴)' },
                         beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Сума продажів (₴)',
-                            font: { weight: 'bold' }
-                        },
-                        grid: {
-                            drawOnChartArea: true, // Основні лінії сітки
-                        },
-                        ticks: { // Форматування значень на осі
-                            callback: function(value, index, ticks) {
-                                return new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 }).format(value) + ' ₴';
-                            }
-                        }
+                        ticks: { callback: function(value) { return new Intl.NumberFormat('uk-UA').format(value); } }
                     },
-                    yQuantity: { // Налаштування правої осі Y (для кількості)
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
+                    yQuantity: {
+                        type: 'linear', display: true, position: 'right',
+                        title: { display: true, text: 'Кількість (од.)' },
+                        grid: { drawOnChartArea: false },
                         beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Кількість (од.)',
-                            font: { weight: 'bold' }
-                        },
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        ticks: {
-                            callback: function(value, index, ticks) {
-                                if (Number.isInteger(value)) {
-                                   return value + ' од.';
-                                }
-                                return null;
-                            },
-                            stepSize: Math.max(1, Math.ceil(Math.max(...({{ chart_quantity_values|tojson }})) / 10)) // Динамічний крок, щоб було не більше ~10 міток
-                        }
-                    },
-                    x: { // Налаштування осі X (дати)
-                        title: {
-                            display: true,
-                            text: 'Дата',
-                            font: { weight: 'bold' }
-                        },
-                        grid: {
-                            display: false
-                        }
+                        ticks: { stepSize: 1 }
                     }
                 },
-                plugins: { // Налаштування плагінів (тултіпи, легенда)
+                plugins: {
                     tooltip: {
-                        mode: 'index', // Показувати тултіпи для всіх датасетів при наведенні на точку X
-                        intersect: false,
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleFont: { weight: 'bold'},
-                        callbacks: { // Кастомне форматування
+                        callbacks: {
                             label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
+                                let currentLabel = context.dataset.label || '';
+                                if (currentLabel) { currentLabel += ': '; }
                                 if (context.parsed.y !== null) {
                                     if (context.dataset.yAxisID === 'ySales') {
-                                        label += new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH' }).format(context.parsed.y);
+                                        currentLabel += new Intl.NumberFormat('uk-UA', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(context.parsed.y) + ' ₴';
                                     } else {
-                                        label += context.parsed.y + ' од.';
+                                        currentLabel += context.parsed.y + ' од.';
                                     }
                                 }
-                                return label;
+                                return currentLabel;
                             }
                         }
                     },
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            boxWidth: 10,
-                            font: { size: 12 }
-                        }
-                    }
-                },
-                interaction: { // Налаштування взаємодії з графіком
-                    mode: 'index',
-                    intersect: false,
+                    legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle' } }
                 }
             }
         });
+    }
+
+    drawChart({
+        labels: chartInitialData.labels,
+        datasets: chartInitialData.datasets,
+        messageContent: {{ chart_no_data_message|tojson|safe }}
+    });
+
+    const filtersForm = document.getElementById('chartFilterForm');
+    filtersForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        fetchAndUpdateChart();
+    });
+
+    document.getElementById('resetFiltersButton').addEventListener('click', function() {
+        const todayDate = new Date();
+        const defaultEndDateStr = todayDate.toISOString().split('T')[0];
+        const defaultStartDate = new Date(new Date().setDate(todayDate.getDate() - 29));
+        const defaultStartDateStr = defaultStartDate.toISOString().split('T')[0];
+
+        document.getElementById('startDateInput').value = defaultStartDateStr;
+        document.getElementById('endDateInput').value = defaultEndDateStr;
+        document.getElementById('categorySelect').value = 'all';
+        document.getElementById('manufacturerSelect').value = 'all';
+
+        fetchAndUpdateChart();
+    });
+
+    function fetchAndUpdateChart() {
+        const startDateValue = document.getElementById('startDateInput').value;
+        const endDateValue = document.getElementById('endDateInput').value;
+        const categoryValue = document.getElementById('categorySelect').value;
+        const manufacturerValue = document.getElementById('manufacturerSelect').value;
+
+        const urlParams = new URLSearchParams({
+            start_date: startDateValue,
+            end_date: endDateValue,
+            category_filter: categoryValue,
+            manufacturer_filter: manufacturerValue
+        });
+
+        fetch(`/api/chart-data?${urlParams.toString()}`)
+            .then(response => response.json())
+            .then(apiResponseData => {
+                if (apiResponseData.error) {
+                    console.error("Error from API:", apiResponseData.error);
+                    drawChart({ labels: [], datasets: chartInitialData.datasets, messageContent: apiResponseData.error });
+                    return;
+                }
+                drawChart({
+                    labels: apiResponseData.labels,
+                    datasets: [
+                        { ...chartInitialData.datasets[0], data: apiResponseData.sales_values },
+                        { ...chartInitialData.datasets[1], data: apiResponseData.quantity_values }
+                    ],
+                    messageContent: apiResponseData.message
+                });
+            })
+            .catch(fetchError => {
+                console.error('Fetch error:', fetchError);
+                drawChart({ labels: [], datasets: chartInitialData.datasets, messageContent: 'Помилка завантаження даних для графіку.' });
+            });
     }
 });
 </script>

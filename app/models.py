@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, DateTime, Date, Numeric, ForeignKey, Text, Float as SQLAlchemyFloat, Index, UniqueConstraint
-from sqlalchemy.dialects.mssql import DATETIME2 # Для Location дат
+from sqlalchemy import Integer, String, DateTime, Date, Numeric, ForeignKey, Text, TextClause, func, \
+    Float as SQLAlchemyFloat, Boolean
+from sqlalchemy.dialects.mssql import DATETIME2
 from datetime import datetime, date, timezone
-
 import decimal
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 db = SQLAlchemy()
 
-# Допоміжна функція для server_default, щоб уникнути проблем з lambda в деяких версіях
+
 def default_utc_now():
     return datetime.now(timezone.utc)
+
 
 class City(db.Model):
     __tablename__ = 'Cities'
@@ -24,28 +27,41 @@ class City(db.Model):
     CityID: Mapped[int] = mapped_column(Integer, primary_key=True)
     CityName: Mapped[str] = mapped_column(String(100), unique=True)
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now) # onupdate для Flask
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
 
     orders: Mapped[list[Order]] = relationship('Order', back_populates='city')
+
 
 class Client(db.Model):
     __tablename__ = 'Clients'
     __table_args__ = (
-        db.PrimaryKeyConstraint('ClientID', name='PK__Clients__E67E1A04246819A8'),
+        db.PrimaryKeyConstraint('ClientID', name='PK_Clients'),
+        db.ForeignKeyConstraint(['CityID'], ['StockWeavix.Cities.CityID'], name='FK_Clients_Cities'),
+        db.UniqueConstraint('Phone', name='UQ_Clients_Phone_StockWeavix'),
+        db.UniqueConstraint('Email', name='UQ_Clients_Email_StockWeavix'),
         {'schema': 'StockWeavix'}
     )
 
-    ClientID: Mapped[int] = mapped_column(Integer, primary_key=True)
-    LastName: Mapped[str] = mapped_column(String(50), server_default=db.text("('Невідомо')"))
-    FirstName: Mapped[str] = mapped_column(String(50), server_default=db.text("('Невідомо')"))
-    Address: Mapped[str] = mapped_column(String(500), server_default=db.text("('Не вказано')"))
-    CreatedDate: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now)
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now, onupdate=default_utc_now)
+    ClientID: Mapped[int] = mapped_column(Integer, db.Identity(start=1, increment=1), primary_key=True)
+    CityID: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    LastName: Mapped[str] = mapped_column(String(50), nullable=False, server_default=db.text("N'Невідомо'"))
+    FirstName: Mapped[str] = mapped_column(String(50), nullable=False, server_default=db.text("N'Невідомо'"))
     MiddleName: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    Phone: Mapped[str | None] = mapped_column(String(15), nullable=True)
+    Phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     Email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    Address: Mapped[str | None] = mapped_column(String(500), nullable=True, server_default=db.text("N'Не вказано'"))
+    CreatedDate: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=db.text('getdate()'),
+                                                  default=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=db.text('getdate()'),
+                                                  default=default_utc_now, onupdate=default_utc_now)
 
     orders: Mapped[list[Order]] = relationship('Order', back_populates='client')
+    city: Mapped[City | None] = relationship('City')
+
+    def __repr__(self):
+        return f"<Client ID:{self.ClientID} {self.LastName} {self.FirstName}>"
+
 
 class Manufacturer(db.Model):
     __tablename__ = 'Manufacturers'
@@ -57,10 +73,12 @@ class Manufacturer(db.Model):
     ManufacturerID: Mapped[int] = mapped_column(Integer, primary_key=True)
     ManufacturerName: Mapped[str] = mapped_column(String(255))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     ManufacturerDescription: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     products: Mapped[list[Product]] = relationship('Product', back_populates='manufacturer')
+
 
 class OrderStatus(db.Model):
     __tablename__ = 'OrderStatuses'
@@ -71,8 +89,9 @@ class OrderStatus(db.Model):
 
     OrderStatusID: Mapped[int] = mapped_column(Integer, primary_key=True)
     StatusName: Mapped[str] = mapped_column(String(255))
-
+    CssClassName: Mapped[str | None] = mapped_column(String(50), nullable=True)
     orders: Mapped[list[Order]] = relationship('Order', back_populates='status')
+
 
 class Position(db.Model):
     __tablename__ = 'Positions'
@@ -83,7 +102,8 @@ class Position(db.Model):
 
     PositionID: Mapped[int] = mapped_column(Integer, primary_key=True)
     PositionName: Mapped[str] = mapped_column(String(255))
-    employees: Mapped[list[Employee]] = relationship('Employee', back_populates='position')
+    employees: Mapped[list['Employee']] = relationship('Employee', back_populates='position')
+
 
 class ProductCategory(db.Model):
     __tablename__ = 'ProductCategories'
@@ -95,10 +115,12 @@ class ProductCategory(db.Model):
     CategoryID: Mapped[int] = mapped_column(Integer, primary_key=True)
     CategoryName: Mapped[str] = mapped_column(String(255))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     products: Mapped[list[Product]] = relationship('Product', back_populates='category')
+
 
 class Supplier(db.Model):
     __tablename__ = 'Suppliers'
@@ -110,7 +132,8 @@ class Supplier(db.Model):
     SupplierID: Mapped[int] = mapped_column(Integer, primary_key=True)
     SupplierName: Mapped[str] = mapped_column(String(255))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     SupplierAddress: Mapped[str | None] = mapped_column(String(255), nullable=True)
     SupplierPhone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     SupplierEDRPOU: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -119,7 +142,8 @@ class Supplier(db.Model):
 
     contracts: Mapped[list[SupplyContract]] = relationship('SupplyContract', back_populates='supplier')
 
-class SupplyStatus(db.Model): # Змінив SupplyStatuses на SupplyStatus
+
+class SupplyStatus(db.Model):
     __tablename__ = 'SupplyStatuses'
     __table_args__ = (
         db.PrimaryKeyConstraint('SupplyStatusID', name='PK__Contract__96D70656FDDE505B'),
@@ -132,6 +156,7 @@ class SupplyStatus(db.Model): # Змінив SupplyStatuses на SupplyStatus
 
     contracts: Mapped[list[SupplyContract]] = relationship('SupplyContract', back_populates='status')
 
+
 class Warehouse(db.Model):
     __tablename__ = 'Warehouses'
     __table_args__ = (
@@ -142,15 +167,17 @@ class Warehouse(db.Model):
     WarehouseID: Mapped[int] = mapped_column(Integer, primary_key=True)
     WarehouseName: Mapped[str] = mapped_column(String(255))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     Address: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    employees: Mapped[list[Employee]] = relationship('Employee', back_populates='warehouse')
+    employees: Mapped[list['Employee']] = relationship('Employee', back_populates='warehouse')
     zones: Mapped[list[Zone]] = relationship('Zone', back_populates='warehouse')
     locations: Mapped[list[Location]] = relationship('Location', back_populates='warehouse')
 
-class ZoneSection(db.Model): # Змінив ZoneSections на ZoneSection
+
+class ZoneSection(db.Model):
     __tablename__ = 'ZoneSections'
     __table_args__ = (
         db.PrimaryKeyConstraint('SectionID', name='PK__ZoneSect__80EF0892ED46AC0D'),
@@ -163,7 +190,8 @@ class ZoneSection(db.Model): # Змінив ZoneSections на ZoneSection
 
     locations: Mapped[list[Location]] = relationship('Location', back_populates='section')
 
-class ZoneShelf(db.Model): # Змінив ZoneShelves на ZoneShelf
+
+class ZoneShelf(db.Model):
     __tablename__ = 'ZoneShelves'
     __table_args__ = (
         db.PrimaryKeyConstraint('ShelfID', name='PK__ZoneShel__DBD04F27FA0BAB71'),
@@ -176,74 +204,124 @@ class ZoneShelf(db.Model): # Змінив ZoneShelves на ZoneShelf
 
     locations: Mapped[list[Location]] = relationship('Location', back_populates='shelf')
 
-class Employee(db.Model):
+
+class Employee(db.Model, UserMixin):
     __tablename__ = 'Employees'
     __table_args__ = (
         db.ForeignKeyConstraint(['PositionID'], ['StockWeavix.Positions.PositionID'], name='FK_Employees_Positions'),
-        db.ForeignKeyConstraint(['WarehouseID'], ['StockWeavix.Warehouses.WarehouseID'], name='FK_Employees_Warehouses'),
+        db.ForeignKeyConstraint(['WarehouseID'], ['StockWeavix.Warehouses.WarehouseID'],
+                                name='FK_Employees_Warehouses'),
         db.PrimaryKeyConstraint('EmployeeID', name='PK__Employee__7AD04FF178670A77'),
+        db.UniqueConstraint('EmployeeCode', name='UQ_Employees_EmployeeCode'),  # Додано обмеження
         {'schema': 'StockWeavix'}
     )
 
-    EmployeeID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    EmployeeID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     PositionID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Positions.PositionID'))
     WarehouseID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Warehouses.WarehouseID'))
     EmployeeLastName: Mapped[str] = mapped_column(String(255))
     EmployeeFirstName: Mapped[str] = mapped_column(String(255))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     EmployeePatronymic: Mapped[str | None] = mapped_column(String(255), nullable=True)
     EmployeePassport: Mapped[str | None] = mapped_column(String(50), nullable=True)
     EmployeePhone: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    EmployeeEmail: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    EmployeeEmail: Mapped[str | None] = mapped_column(String(255),
+                                                      nullable=True)
+
+    EmployeeCode: Mapped[str | None] = mapped_column(String(50), nullable=True, unique=True)
+    PasswordHash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    IsActive: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    IsAdmin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     position: Mapped[Position] = relationship('Position', back_populates='employees')
     warehouse: Mapped[Warehouse] = relationship('Warehouse', back_populates='employees')
 
+    def get_id(self):
+        return str(self.EmployeeID)
+
+    @property
+    def is_active(self):
+        return self.IsActive
+
+    @property
+    def is_admin(self):
+        return self.IsAdmin
+
+    def set_password(self, password):
+        self.PasswordHash = generate_password_hash(password)
+
+    def check_password(self, password):
+        if self.PasswordHash is None:
+            return False
+        return check_password_hash(self.PasswordHash, password)
+
+
+
 class Order(db.Model):
     __tablename__ = 'Orders'
-    OrderID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    __table_args__ = (
+        db.ForeignKeyConstraint(['CityID'], ['StockWeavix.Cities.CityID'], name='FK_Orders_Cities'),
+        db.ForeignKeyConstraint(['ClientID'], ['StockWeavix.Clients.ClientID'], name='FK_Orders_Clients'),
+        db.ForeignKeyConstraint(['OrderStatusID'], ['StockWeavix.OrderStatuses.OrderStatusID'],
+                                name='FK_Orders_OrderStatuses'),
+        db.PrimaryKeyConstraint('OrderID', name='PK_Orders_OrderID'),
+        {'schema': 'StockWeavix'}
+    )
+
+    OrderID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ClientID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Clients.ClientID'), nullable=True)
-    CityID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Cities.CityID'), nullable=True) # Якщо є
-    OrderDate: Mapped[date] = mapped_column(Date, default=date.today) # Поточна дата за замовчуванням
+    CityID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Cities.CityID'), nullable=True)
+    OrderDate: Mapped[date] = mapped_column(Date, default=date.today)
     OrderStatusID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.OrderStatuses.OrderStatusID'))
-    OrderTotal: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True, default=0.00) # Додаємо поле для суми
     Description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ShippingAddress: Mapped[str | None] = mapped_column(String(500), nullable=True) # Додамо адресу доставки
+    PaymentDate: Mapped[date | None] = mapped_column(Date, nullable=True)
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now)
     LastUpdated: Mapped[datetime] = mapped_column(DateTime, default=default_utc_now, onupdate=default_utc_now)
 
     client: Mapped[Client | None] = relationship(back_populates='orders')
     status: Mapped[OrderStatus] = relationship(back_populates='orders')
-    city: Mapped[City | None] = relationship(back_populates='orders') # Якщо є
+    city: Mapped[City | None] = relationship(back_populates='orders')
     items: Mapped[list['OrderItem']] = relationship(back_populates='order', cascade="all, delete-orphan")
 
-    # Метод для перерахунку суми замовлення (приклад)
-    def calculate_total(self):
+    def calculate_total(self) -> decimal.Decimal:
         total = decimal.Decimal('0.00')
-        for item in self.items:
-            if item.Quantity and item.UnitPrice:
-                total += decimal.Decimal(str(item.Quantity)) * decimal.Decimal(str(item.UnitPrice))
-        self.OrderTotal = total
+        if self.items:
+            for item in self.items:
+                if item.Quantity and item.UnitPrice:
+                    total += decimal.Decimal(str(item.Quantity)) * decimal.Decimal(str(item.UnitPrice))
         return total
+
+    @property
+    def derived_shipping_address(self) -> str | None:
+        if self.client and self.client.Address:
+            address_value: str | None = self.client.Address
+            return address_value
+        return "Адреса не вказана"
+
 
 class Product(db.Model):
     __tablename__ = 'Products'
     __table_args__ = (
-        db.ForeignKeyConstraint(['ManufacturerID'], ['StockWeavix.Manufacturers.ManufacturerID'], name='FK_Products_Manufacturers'),
-        db.ForeignKeyConstraint(['ProductCategoryID'], ['StockWeavix.ProductCategories.CategoryID'], name='FK_Products_ProductCategories'),
+        db.ForeignKeyConstraint(['ManufacturerID'], ['StockWeavix.Manufacturers.ManufacturerID'],
+                                name='FK_Products_Manufacturers'),
+        db.ForeignKeyConstraint(['ProductCategoryID'], ['StockWeavix.ProductCategories.CategoryID'],
+                                name='FK_Products_ProductCategories'),
         db.PrimaryKeyConstraint('ProductID', name='PK__Products__B40CC6ED93612CFE'),
         db.UniqueConstraint('SKU', name='UQ__Products__DD4E05F2xxxxxxx'),
         {'schema': 'StockWeavix'}
     )
 
-    ProductID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ProductID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ProductName: Mapped[str] = mapped_column(String(255))
     ProductCategoryID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.ProductCategories.CategoryID'))
     SKU: Mapped[str] = mapped_column(String(100), unique=True)
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
-    ManufacturerID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Manufacturers.ManufacturerID'), nullable=True)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
+    ManufacturerID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Manufacturers.ManufacturerID'),
+                                                       nullable=True)
     ProductDescription: Mapped[str | None] = mapped_column(String(500), nullable=True)
     Price: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
 
@@ -253,20 +331,24 @@ class Product(db.Model):
     supply_details: Mapped[list[SupplyDetail]] = relationship('SupplyDetail', back_populates='product')
     inventory_items: Mapped[list[Inventory]] = relationship('Inventory', back_populates='product')
 
+
 class SupplyContract(db.Model):
     __tablename__ = 'SupplyContracts'
     __table_args__ = (
-        db.ForeignKeyConstraint(['SupplierID'], ['StockWeavix.Suppliers.SupplierID'], name='FK_SupplyContracts_Suppliers'),
-        db.ForeignKeyConstraint(['SupplyStatusID'], ['StockWeavix.SupplyStatuses.SupplyStatusID'], name='FK_SupplyContracts_SupplyStatuses'),
+        db.ForeignKeyConstraint(['SupplierID'], ['StockWeavix.Suppliers.SupplierID'],
+                                name='FK_SupplyContracts_Suppliers'),
+        db.ForeignKeyConstraint(['SupplyStatusID'], ['StockWeavix.SupplyStatuses.SupplyStatusID'],
+                                name='FK_SupplyContracts_SupplyStatuses'),
         db.PrimaryKeyConstraint('SupplyID', name='PK__SupplyCo__C90D3409B87C0427'),
         {'schema': 'StockWeavix'}
     )
 
-    SupplyID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    SupplyID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     SupplierID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Suppliers.SupplierID'))
     SupplyStatusID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.SupplyStatuses.SupplyStatusID'))
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     ContractPrice: Mapped[decimal.Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     PaymentDate: Mapped[date | None] = mapped_column(Date, nullable=True)
     Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -274,6 +356,7 @@ class SupplyContract(db.Model):
     supplier: Mapped[Supplier] = relationship('Supplier', back_populates='contracts')
     status: Mapped[SupplyStatus] = relationship('SupplyStatus', back_populates='contracts')
     details: Mapped[list[SupplyDetail]] = relationship('SupplyDetail', back_populates='contract')
+
 
 class Zone(db.Model):
     __tablename__ = 'Zones'
@@ -290,11 +373,13 @@ class Zone(db.Model):
     RowMin: Mapped[int] = mapped_column(Integer)
     RowMax: Mapped[int] = mapped_column(Integer)
     CreatedDate: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'))
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
     Description: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     warehouse: Mapped[Warehouse] = relationship('Warehouse', back_populates='zones')
     rows: Mapped[list[ZoneRow]] = relationship('ZoneRow', back_populates='zone')
+
 
 class OrderItem(db.Model):
     __tablename__ = 'OrderItems'
@@ -305,7 +390,7 @@ class OrderItem(db.Model):
         {'schema': 'StockWeavix'}
     )
 
-    OrderItemID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    OrderItemID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     OrderID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Orders.OrderID'))
     ProductID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Products.ProductID'))
     Quantity: Mapped[int] = mapped_column(Integer)
@@ -314,19 +399,18 @@ class OrderItem(db.Model):
     order: Mapped[Order] = relationship('Order', back_populates='items')
     product: Mapped[Product] = relationship('Product', back_populates='order_items')
 
-    Order.items = relationship('OrderItem', back_populates='order')
-
 
 class SupplyDetail(db.Model):
     __tablename__ = 'SupplyDetails'
     __table_args__ = (
         db.ForeignKeyConstraint(['ProductID'], ['StockWeavix.Products.ProductID'], name='FK_SupplyDetails_Products'),
-        db.ForeignKeyConstraint(['SupplyID'], ['StockWeavix.SupplyContracts.SupplyID'], name='FK_SupplyDetails_SupplyContracts'),
+        db.ForeignKeyConstraint(['SupplyID'], ['StockWeavix.SupplyContracts.SupplyID'],
+                                name='FK_SupplyDetails_SupplyContracts'),
         db.PrimaryKeyConstraint('SupplyDetailID', name='PK__Contract__CCA7AF02BA495A24'),
         {'schema': 'StockWeavix'}
     )
 
-    SupplyDetailID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    SupplyDetailID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     SupplyID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.SupplyContracts.SupplyID'))
     ProductID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Products.ProductID'))
     Quantity: Mapped[int] = mapped_column(Integer)
@@ -334,6 +418,7 @@ class SupplyDetail(db.Model):
 
     product: Mapped[Product] = relationship('Product', back_populates='supply_details')
     contract: Mapped[SupplyContract] = relationship('SupplyContract', back_populates='details')
+
 
 class ZoneRow(db.Model):
     __tablename__ = 'ZoneRows'
@@ -351,6 +436,7 @@ class ZoneRow(db.Model):
     zone: Mapped[Zone] = relationship('Zone', back_populates='rows')
     locations: Mapped[list[Location]] = relationship('Location', back_populates='row')
 
+
 class Location(db.Model):
     __tablename__ = 'Locations'
     __table_args__ = (
@@ -362,9 +448,10 @@ class Location(db.Model):
         {'schema': 'StockWeavix'}
     )
 
-    LocationID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    LocationID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     CreatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'))
-    LastUpdatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdatedDate: Mapped[datetime] = mapped_column(DATETIME2, server_default=db.text('(getdate())'),
+                                                      onupdate=default_utc_now)
     WarehouseID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.Warehouses.WarehouseID'), nullable=True)
     ZoneRowID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.ZoneRows.ZoneRowID'), nullable=True)
     SectionID: Mapped[int | None] = mapped_column(ForeignKey('StockWeavix.ZoneSections.SectionID'), nullable=True)
@@ -399,23 +486,26 @@ class Location(db.Model):
             return "N/A"
         return address_str
 
+
 class Inventory(db.Model):
     __tablename__ = 'Inventory'
     __table_args__ = (
         db.ForeignKeyConstraint(['LocationID'], ['StockWeavix.Locations.LocationID'], name='FK_Inventory_Locations'),
         db.ForeignKeyConstraint(['ProductID'], ['StockWeavix.Products.ProductID'], name='FK_Inventory_Products'),
         db.PrimaryKeyConstraint('InventoryID', name='PK__Inventor__F5FDE6D3B1869395'),
-        {'schema': 'StockWeavix'}
+        {'schema': 'StockWeavix', 'implicit_returning': False}
     )
 
-    InventoryID: Mapped[int] = mapped_column(Integer, primary_key=True)
+    InventoryID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ProductID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Products.ProductID'))
     LocationID: Mapped[int] = mapped_column(ForeignKey('StockWeavix.Locations.LocationID'))
     Quantity: Mapped[int] = mapped_column(Integer)
-    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'), onupdate=default_utc_now)
+    LastUpdated: Mapped[datetime] = mapped_column(DateTime, server_default=db.text('(getdate())'),
+                                                  onupdate=default_utc_now)
 
     location: Mapped[Location] = relationship('Location', back_populates='inventory_items')
     product: Mapped[Product] = relationship('Product', back_populates='inventory_items')
+
 
 class LocationStatusView(db.Model):
     __tablename__ = 'vw_LocationStatus'
@@ -428,6 +518,7 @@ class LocationStatusView(db.Model):
     TotalQuantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ShelfStatus: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
+
 class ZoneOccupancyView(db.Model):
     __tablename__ = 'ZoneOccupancyView'
     __table_args__ = ({'schema': 'StockWeavix', 'info': {'is_view': True}})
@@ -436,6 +527,20 @@ class ZoneOccupancyView(db.Model):
     OccupiedLocations: Mapped[int | None] = mapped_column(Integer, nullable=True)
     OccupancyPercentage: Mapped[float | None] = mapped_column(SQLAlchemyFloat(precision=53), nullable=True)
 
+    def full_address_for_input(self) -> str:
+        """Повертає адресу у форматі ZoneCode.RowNumber.SectionNumber.ShelfLevel"""
+        zone_code_str = "0"
+        row_number_str = "0"
+        section_number_str = "0"
+        shelf_level_str = "0"
 
-class User:
-    pass
+        if self.row and self.row.zone:
+            zone_code_str = str(self.row.zone.ZoneCode)
+        if self.row:
+            row_number_str = str(self.row.RowNumber)
+        if self.section:
+            section_number_str = str(self.section.SectionNumber)
+        if self.shelf:
+            shelf_level_str = str(self.shelf.ShelfLevel)
+
+        return f"{zone_code_str}.{row_number_str}.{section_number_str}.{shelf_level_str}"

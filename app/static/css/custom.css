@@ -87,6 +87,19 @@ body {
   color: white; /* Білий текст на сірому фоні */
 }
 
+.badge.supply-new { background-color: #6c757d; color: white; }               /* Новий (використовуємо темно-сірий, як для voided, або можна змінити) */
+.badge.supply-active { background-color: #0d6efd; color: white; }             /* Активний (Синій) */
+.badge.supply-completed { background-color: #198754; color: white; }          /* Виконаний (Зелений) */
+.badge.supply-pending-signature { background-color: #ffc107; color: black; } /* Очікує підписання (Жовтий) */
+.badge.supply-cancelled { background-color: #dc3545; color: white; }          /* Відмінений (Червоний) */
+.badge.supply-overdue { background-color: #842029; color: white; }            /* Прострочений (Темно-червоний) */
+.badge.supply-under-review { background-color: #6f42c1; color: white; }       /* На перевірці (Фіолетовий) */
+.badge.supply-confirmed { background-color: #0a58ca; color: white; }          /* Підтверджений (Насичений синій) */
+.badge.supply-voided { background-color: #6c757d; color: white; }             /* Анульований (Темно-сірий) */
+.badge.supply-rework { background-color: #fd7e14; color: white; }            /* На доопрацюванні (Помаранчевий) */
+.badge.supply-delayed { background-color: #ffca2c; color: black; }           /* Затриманий (Темніший жовтий) */
+
+
 /* Стилізація фільтрів */
 .filters-card {
     background-color: #f8f9fa; /* Світлий фон для блоку фільтрів */

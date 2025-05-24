@@ -1,0 +1,84 @@
+{% extends 'layout.html' %}
+
+{% block title %}Створення Нового Товару — StockWeavix{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Новий Товар</h5>
+                     <a href="{{ url_for('products_bp.list_products') }}" class="btn btn-outline-secondary btn-sm">До списку товарів</a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('products_bp.create_product') }}">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            <label for="product_name_create" class="form-label">Назва Товару <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="product_name_create" name="product_name" value="{{ form_data.get('product_name', '') }}" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="sku_create" class="form-label">SKU (Артикул)</label>
+                                <input type="text" class="form-control" id="sku_create" name="sku" value="Автоматично" readonly>
+                                <div class="form-text">SKU генерується автоматично.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="price_create" class="form-label">Ціна (₴)</label>
+                                <input type="text" class="form-control" id="price_create" name="price" value="{{ form_data.get('price', '') }}" pattern="^\d*([.,]\d{1,2})?$" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id_create" class="form-label">Категорія <span class="text-danger">*</span></label>
+                                <select class="form-select" id="category_id_create" name="category_id" required>
+                                    <option value="" {% if not form_data.get('category_id') %}selected{% endif %} disabled>Оберіть категорію...</option>
+                                    {% for category_item in all_categories %}
+                                    <option value="{{ category_item.CategoryID }}" {% if form_data.get('category_id')|string == category_item.CategoryID|string %}selected{% endif %}>
+                                        {{ category_item.CategoryName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="manufacturer_id_create" class="form-label">Виробник</label>
+                                <select class="form-select" id="manufacturer_id_create" name="manufacturer_id">
+                                    <option value="">Не обрано</option>
+                                    {% for mfg_item in all_manufacturers %}
+                                    <option value="{{ mfg_item.ManufacturerID }}" {% if form_data.get('manufacturer_id')|string == mfg_item.ManufacturerID|string %}selected{% endif %}>
+                                        {{ mfg_item.ManufacturerName }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description_create_prod" class="form-label">Опис Товару</label>
+                            <textarea class="form-control" id="description_create_prod" name="description" rows="3">{{ form_data.get('description', '') }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('products_bp.list_products') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Створити Товар</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -40,19 +40,19 @@
                         {% else %} N/A {% endif %}
                     </p>
                     <p><strong>Дата Замовлення:</strong> {{ order.OrderDate.strftime('%d.%m.%Y') if order.OrderDate else 'N/A' }}</p>
-                    <p><strong>Статус:</strong> 
-                        <span class="badge rounded-pill" style="background-color: {{ '#6c757d' }};"> {# TODO: Стилі для статусів #}
+                    <p><strong>Статус:</strong>
+                        <span class="badge {{ order.status.CssClassName if order.status and order.status.CssClassName else 'status-default' }}">
                             {{ order.status.StatusName if order.status else 'N/A' }}
                         </span>
                     </p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Адреса Доставки:</strong><br>{{ order.ShippingAddress | nl2br | default('Не вказано') }}</p>
-                    {# 
+                    <p><strong>Адреса Доставки:</strong><br>{{ order.derived_shipping_address | nl2br }}</p>
+
                     {% if order.city %}
                     <p><strong>Місто:</strong> {{ order.city.CityName }}</p>
                     {% endif %}
-                    #}
+
                     <p><strong>Останнє оновлення:</strong> {{ order.LastUpdated.strftime('%d.%m.%Y %H:%M') if order.LastUpdated else 'N/A' }}</p>
                 </div>
             </div>
@@ -93,8 +93,7 @@
                     <tfoot>
                         <tr class="table-light">
                             <td colspan="5" class="text-end fw-bold">Загальна сума замовлення:</td>
-                            <td class="text-end fw-bold">{{ "%.2f"|format(order.OrderTotal|float) if order.OrderTotal is not none else '0.00' }} ₴</td>
-                        </tr>
+                            <td class="text-end fw-bold">{{ "%.2f"|format(order.calculate_total()|float) }} ₴</td>                        </tr>
                     </tfoot>
                 </table>
             </div>

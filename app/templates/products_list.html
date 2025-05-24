@@ -1,0 +1,133 @@
+{% extends 'layout.html' %}
+
+{% block title %}Список Товарів — StockWeavix{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Список Товарів</h5>
+            <a href="{{ url_for('products_bp.create_product') }}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/>
+                </svg>
+                Створити Товар
+            </a>
+        </div>
+        <div class="card-body px-3">
+            <form method="GET" action="{{ url_for('products_bp.list_products') }}" class="mb-4">
+                <div class="row g-3 align-items-start">
+                    <div class="col-lg-4 col-md-12">
+                        <label for="search_product_input" class="form-label form-label-sm">Пошук (Назва, SKU, ID, Опис):</label>
+                        <input type="text" name="search" id="search_product_input" class="form-control form-control-sm" value="{{ search_term or '' }}" placeholder="Назва, SKU, ID, опис...">
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="category_filter_select" class="form-label form-label-sm">Категорія:</label>
+                        <select name="category_id" id="category_filter_select" class="form-select form-select-sm">
+                            <option value="">Всі категорії</option>
+                            {% for category in all_categories %}
+                                <option value="{{ category.CategoryID }}" {% if selected_category_id|string == category.CategoryID|string %}selected{% endif %}>
+                                    {{ category.CategoryName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label for="manufacturer_filter_select" class="form-label form-label-sm">Виробник:</label>
+                        <select name="manufacturer_id" id="manufacturer_filter_select" class="form-select form-select-sm">
+                            <option value="">Всі виробники</option>
+                            {% for manufacturer in all_manufacturers %}
+                                <option value="{{ manufacturer.ManufacturerID }}" {% if selected_manufacturer_id|string == manufacturer.ManufacturerID|string %}selected{% endif %}>
+                                    {{ manufacturer.ManufacturerName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-3 align-items-end mt-2">
+                    <div class="col-lg-2 col-md-6 col-sm-6 align-self-end">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-info btn-sm">Фільтр</button>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-6 align-self-end">
+                         <div class="d-grid">
+                            <a href="{{ url_for('products_bp.list_products') }}" class="btn btn-outline-secondary btn-sm">Скинути</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            {% if products %}
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%;">ID</th>
+                            <th style="width: 15%;">SKU</th>
+                            <th style="width: 30%;">Назва товару</th>
+                            <th style="width: 15%;">Категорія</th>
+                            <th style="width: 15%;">Виробник</th>
+                            <th style="width: 10%;" class="text-end">Ціна (₴)</th>
+                            <th style="width: 10%;" class="text-center">Дії</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product_item in products %}
+                        <tr>
+                            <td>{{ product_item.ProductID }}</td>
+                            <td>{{ product_item.SKU }}</td>
+                            <td>{{ product_item.ProductName }}</td>
+                            <td>{{ product_item.category.CategoryName if product_item.category else 'N/A' }}</td>
+                            <td>{{ product_item.manufacturer.ManufacturerName if product_item.manufacturer else 'N/A' }}</td>
+                            <td class="text-end">{{ "%.2f"|format(product_item.Price|float) if product_item.Price is not none else '-' }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('products_bp.view_product', product_id=product_item.ProductID) }}" class="btn btn-outline-info btn-sm py-0 px-1" title="Перегляд">
+                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/></svg>
+                                </a>
+                                <a href="{{ url_for('products_bp.edit_product', product_id=product_item.ProductID) }}" class="btn btn-outline-primary btn-sm py-0 px-1 ms-1" title="Редагувати">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/></svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if pagination and pagination.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('products_bp.list_products', page=pagination.prev_num, category_id=selected_category_id, manufacturer_id=selected_manufacturer_id, search=search_term) if pagination.has_prev else '#' }}">«</a>
+                    </li>
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num != pagination.page %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('products_bp.list_products', page=page_num, category_id=selected_category_id, manufacturer_id=selected_manufacturer_id, search=search_term) }}">{{ page_num }}</a></li>
+                            {% else %}
+                                <li class="page-item active" aria-current="page"><span class="page-link">{{ page_num }}</span></li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('products_bp.list_products', page=pagination.next_num, category_id=selected_category_id, manufacturer_id=selected_manufacturer_id, search=search_term) if pagination.has_next else '#' }}">»</a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="text-center text-muted small mt-2">
+                Показано з {{ pagination.first }} по {{ pagination.last }} з {{ pagination.total }} товарів (Сторінка {{ pagination.page }} з {{ pagination.pages }})
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="alert alert-secondary text-center mt-4" role="alert">
+                Товарів за обраними критеріями не знайдено.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

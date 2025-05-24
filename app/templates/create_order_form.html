@@ -29,39 +29,40 @@
                             <select class="form-select" id="client_id_order" name="client_id" required>
                                 <option value="" {% if not form_data.get('client_id') %}selected{% endif %} disabled>Оберіть клієнта...</option>
                                 {% for client in all_clients %}
-                                <option value="{{ client.ClientID }}" {% if form_data.get('client_id')|int == client.ClientID %}selected{% endif %}>
+                                <option value="{{ client.ClientID }}" {% if form_data.get('client_id')|string == client.ClientID|string %}selected{% endif %}>
                                     {{ client.LastName }} {{ client.FirstName }} (#{{ client.ClientID }})
                                 </option>
                                 {% endfor %}
-                                {# опція для створення нового клієнта, яка показуватиме дод. поля через JS #}
                             </select>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="order_date_order" class="form-label">Дата Замовлення <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="order_date_order" name="order_date" value="{{ form_data.get('order_date', current_date) }}" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="order_date_order" class="form-label">Дата Замовлення <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="order_date_order" name="order_date" value="{{ form_data.get('order_date', current_date) }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_date_order" class="form-label">Дата Оплати</label>
+                                <input type="date" class="form-control" id="payment_date_order" name="payment_date" value="{{ form_data.get('payment_date', '') }}">
+                            </div>
                         </div>
 
-                        {# Статус на бекенді  #}
-
-                        <div class="mb-3">
-                            <label for="shipping_address_order" class="form-label">Адреса Доставки</label>
-                            <textarea class="form-control" id="shipping_address_order" name="shipping_address" rows="2">{{ form_data.get('shipping_address', '') }}</textarea>
-                        </div>
-
-                        {#
                         <div class="mb-3">
                             <label for="city_id_order" class="form-label">Місто</label>
                             <select class="form-select" id="city_id_order" name="city_id">
                                 <option value="">Не обрано</option>
                                 {% for city_item in all_cities %}
-                                <option value="{{ city_item.CityID }}" {% if form_data.get('city_id')|int == city_item.CityID %}selected{% endif %}>
+                                <option value="{{ city_item.CityID }}" {% if form_data.get('city_id')|string == city_item.CityID|string %}selected{% endif %}>
                                     {{ city_item.CityName }}
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
-                        #}
+
+                        <div class="mb-3">
+                            <label for="shipping_address_order" class="form-label">Адреса Доставки (буде додано до опису)</label>
+                            <textarea class="form-control" id="shipping_address_order" name="shipping_address" rows="2">{{ form_data.get('shipping_address', '') }}</textarea>
+                        </div>
 
                         <div class="mb-3">
                             <label for="description_order" class="form-label">Коментар / Опис</label>

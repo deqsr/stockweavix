@@ -8,14 +8,20 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Управління постачаннями</h5>
             <div>
-                <a href="{{ url_for('supplies_bp.list_supplies', search=search_query, status_id=selected_status_id, supplier_id=selected_supplier_id, page=pagination.page if pagination else 1, view_mode='list') }}"
-                   class="btn btn-outline-secondary btn-sm me-1 {% if current_view_mode == 'list' %}active{% endif %}" title="Вигляд списком">
+                <a href="{{ url_for('supplies_bp.create_supply_contract') }}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/>
+                    </svg>
+                    Сформувати поставку
+                </a>
+                 <a href="{{ url_for('supplies_bp.list_supplies', search=search_query, status_id=selected_status_id, supplier_id=selected_supplier_id, page=pagination.page if pagination else 1, view_mode='list') }}"
+                   class="btn btn-outline-secondary btn-sm ms-2 {% if current_view_mode == 'list' %}active{% endif %}" title="Вигляд списком">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"></path>
                     </svg>
                 </a>
                 <a href="{{ url_for('supplies_bp.list_supplies', search=search_query, status_id=selected_status_id, supplier_id=selected_supplier_id, page=pagination.page if pagination else 1, view_mode='grid') }}"
-                   class="btn btn-outline-secondary btn-sm me-1 {% if current_view_mode == 'grid' %}active{% endif %}" title="Вигляд сіткою">
+                   class="btn btn-outline-secondary btn-sm {% if current_view_mode == 'grid' %}active{% endif %}" title="Вигляд сіткою">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
                         <path d="M1 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zM1 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zM1 12a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1z"></path>
                     </svg>
@@ -29,42 +35,53 @@
             </div>
         </div>
         <div class="card-body px-3">
-            <form method="GET" action="{{ url_for('supplies_bp.list_supplies') }}" class="row g-3 mb-4 align-items-center">
-                <div class="col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"></path>
-                            </svg>
-                        </span>
-                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Пошук поставок (ID, Постачальник)" value="{{ search_query or '' }}">
+            <form method="GET" action="{{ url_for('supplies_bp.list_supplies') }}" class="mb-4">
+                <div class="row g-3 align-items-start">
+                    <div class="col-lg-4 col-md-12">
+                        <label for="search_supply_input" class="form-label form-label-sm">Пошук (ID, Назва постачальника):</label>
+                        <div class="input-group input-group-sm">
+                             <span class="input-group-text">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"></path>
+                                </svg>
+                            </span>
+                            <input type="text" name="search" id="search_supply_input" class="form-control form-control-sm" placeholder="ID, Постачальник..." value="{{ search_query or '' }}">
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 col-sm-6">
+                        <label for="supplier_filter_select" class="form-label form-label-sm">Постачальник:</label>
+                         <select name="supplier_id" id="supplier_filter_select" class="form-select form-select-sm">
+                            <option value="">Всі постачальники</option>
+                            {% for supplier in all_suppliers %}
+                                <option value="{{ supplier.SupplierID }}" {% if selected_supplier_id|string == supplier.SupplierID|string %}selected{% endif %}>
+                                    {{ supplier.SupplierName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6 col-sm-6">
+                        <label for="status_filter_select_supply" class="form-label form-label-sm">Статус:</label>
+                        <select name="status_id" id="status_filter_select_supply" class="form-select form-select-sm">
+                            <option value="">Всі статуси</option>
+                            {% for status in all_statuses %}
+                                <option value="{{ status.SupplyStatusID }}" {% if selected_status_id|string == status.SupplyStatusID|string %}selected{% endif %}>
+                                    {{ status.StatusName }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
-                <div class="col-md-2">
-                     <select name="supplier_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Всі постачальники</option>
-                        {% for supplier in all_suppliers %}
-                            <option value="{{ supplier.SupplierID }}" {% if selected_supplier_id == supplier.SupplierID %}selected{% endif %}>
-                                {{ supplier.SupplierName }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="status_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Всі статуси</option>
-                        {% for status in all_statuses %}
-                            <option value="{{ status.SupplyStatusID }}" {% if selected_status_id == status.SupplyStatusID %}selected{% endif %}>
-                                {{ status.StatusName }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <a href="{{ url_for('supplies_bp.list_supplies') }}" class="btn btn-outline-secondary btn-sm w-100">Скинути</a>
-                </div>
-                <div class="col-md-2">
-                    <a href="{{ url_for('supplies_bp.create_supply_contract') }}" class="btn btn-primary btn-sm w-100">Сформувати поставку</a>
+                 <div class="row g-3 align-items-end mt-2">
+                    <div class="col-lg-2 col-md-6 col-sm-6 align-self-end">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-info btn-sm">Фільтр</button>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-6 align-self-end">
+                         <div class="d-grid">
+                            <a href="{{ url_for('supplies_bp.list_supplies') }}" class="btn btn-outline-secondary btn-sm">Скинути</a>
+                        </div>
+                    </div>
                 </div>
             </form>
 
@@ -74,13 +91,13 @@
                     <table class="table table-hover table-sm align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>ID</th>
-                                <th>Постачальник</th>
-                                <th>Дата створення</th>
-                                <th class="text-end">К-сть товарів</th>
-                                <th class="text-end">Сума (₴)</th>
-                                <th>Статус</th>
-                                <th class="text-center">Дії</th>
+                                <th style="width: 5%;">ID</th>
+                                <th style="width: 30%;">Постачальник</th>
+                                <th style="width: 15%;">Дата створення</th>
+                                <th style="width: 10%;" class="text-end px-2">К-сть товарів</th>
+                                <th style="width: 15%;" class="text-end px-2">Сума (₴)</th>
+                                <th style="width: 10%;" class="text-start ps-2">Статус</th>
+                                <th style="width: 15%;" class="text-center">Дії</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -89,15 +106,18 @@
                                 <td>{{ supply.id }}</td>
                                 <td>{{ supply.supplier_name }}</td>
                                 <td>{{ supply.created_date }}</td>
-                                <td class="text-end">{{ supply.total_items }}</td>
-                                <td class="text-end">{{ "%.2f"|format(supply.total_price|float) }}</td>
-                                <td><span class="badge rounded-pill {{ supply.status_class }}">{{ supply.status_name }}</span></td>
+                                <td class="text-end px-2">{{ supply.total_items }}</td>
+                                <td class="text-end px-2">{{ "%.2f"|format(supply.total_price|float) }}</td>
+                                <td class="text-start ps-2"><span class="badge {{ supply.status_class }}">{{ supply.status_name }}</span></td>
                                 <td class="text-center">
-                                    <a href="{{ url_for('supplies_bp.supply_details_view', supply_id=supply.id) }}" class="btn btn-outline-primary btn-sm py-0 px-1" title="Деталі">
+                                    <a href="{{ url_for('supplies_bp.supply_details_view', supply_id=supply.id) }}" class="btn btn-outline-info btn-sm py-0 px-1" title="Перегляд">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
                                             <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"></path>
                                             <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"></path>
                                         </svg>
+                                    </a>
+                                    <a href="{{ url_for('supplies_bp.edit_supply_contract', supply_id=supply.id) }}" class="btn btn-outline-primary btn-sm py-0 px-1 ms-1" title="Редагувати">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/></svg>
                                     </a>
                                 </td>
                             </tr>
@@ -131,6 +151,7 @@
                             </div>
                             <div class="card-footer text-center bg-light border-top-0 py-2">
                                 <a href="{{ url_for('supplies_bp.supply_details_view', supply_id=supply.id) }}" class="btn btn-outline-primary btn-sm">Переглянути деталі</a>
+                                 <a href="{{ url_for('supplies_bp.edit_supply_contract', supply_id=supply.id) }}" class="btn btn-outline-warning btn-sm ms-1">Редагувати</a>
                             </div>
                         </div>
                     </div>
@@ -202,15 +223,14 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const calendarViewBtn = document.getElementById('calendarViewBtn');
+    // const calendarViewBtn = document.getElementById('calendarViewBtn'); // Already in your script
     const applyCalendarFilterBtnModal = document.getElementById('applyCalendarFilterBtnModal');
     const supplyDateFilterModalInput = document.getElementById('supplyDateFilterModal');
 
-     /** @type {bootstrap.Modal} */
+     /** @type {bootstrap.Modal?} */
     let calendarModalInstance = null;
     const calendarModalEl = document.getElementById('calendarModal');
     if (calendarModalEl) {
-
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             calendarModalInstance = bootstrap.Modal.getInstance(calendarModalEl);
             if (!calendarModalInstance) {
@@ -228,9 +248,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectedDate) {
                 let currentUrl = new URL("{{ url_for('supplies_bp.list_supplies', _external=True) }}");
 
+                // Preserve existing query parameters except for 'filter_date' and 'page'
                 const searchParams = new URL(window.location.href).searchParams;
                 searchParams.forEach((value, key) => {
-                    if (key !== 'filter_date' && key !== 'page') {
+                    if (key !== 'filter_date' && key !== 'page') { // Do not carry over old filter_date or page
                         currentUrl.searchParams.set(key, value);
                     }
                 });
@@ -238,16 +259,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentUrl.searchParams.set('filter_date', selectedDate);
                 currentUrl.searchParams.delete('page');
 
-                if (calendarModalInstance) { //
+                if (calendarModalInstance) {
                     calendarModalInstance.hide();
+                    calendarModalEl.addEventListener('hidden.bs.modal', function () {
+                        window.location.href = currentUrl.toString();
+                    }, { once: true });
+                } else {
+                     window.location.href = currentUrl.toString();
                 }
 
-                // setTimeout(function() {
-                window.location.href = currentUrl.toString();
-                // }, 150);
-
             } else {
-                 calendarModalInstance.hide();
+                 if (calendarModalInstance) calendarModalInstance.hide();
                  alert("Будь ласка, оберіть дату.");
             }
         });

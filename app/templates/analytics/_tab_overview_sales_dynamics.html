@@ -1,0 +1,170 @@
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Розширена Динаміка Продажів</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analytics_bp.analytics_dashboard') }}" id="salesDynamicsFilterForm" class="mb-3">
+             {# Hidden input to keep the current tab active on form submission #}
+            <input type="hidden" name="active_tab_target" value="#overview-pane">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="start_date_dynamics" class="form-label form-label-sm">Початкова дата:</label>
+                    <input type="date" class="form-control form-control-sm" id="start_date_dynamics" name="start_date_dynamics" value="{{ current_start_date_dynamics }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date_dynamics" class="form-label form-label-sm">Кінцева дата:</label>
+                    <input type="date" class="form-control form-control-sm" id="end_date_dynamics" name="end_date_dynamics" value="{{ current_end_date_dynamics }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="comparison_type_dynamics" class="form-label form-label-sm">Порівняти з:</label>
+                    <select class="form-select form-select-sm" id="comparison_type_dynamics" name="comparison_type">
+                        <option value="none" {% if current_comparison_type == 'none' %}selected{% endif %}>Не порівнювати</option>
+                        <option value="previous_period" {% if current_comparison_type == 'previous_period' %}selected{% endif %}>Попереднім періодом</option>
+                        <option value="previous_year" {% if current_comparison_type == 'previous_year' %}selected{% endif %}>Аналогічним періодом минулого року</option>
+                    </select>
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-funnel-fill"></i> Застосувати
+                    </button>
+                </div>
+                <div class="col-md-auto">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetSalesDynamicsFilters">
+                        За замовчуванням
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div class="chart-container">
+            <canvas id="salesDynamicsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctxSalesDynamics = document.getElementById('salesDynamicsChart');
+    // ... (решта JS коду для діаграми залишається) ...
+    if (ctxSalesDynamics) {
+        const salesDynamicsData = {{ sales_dynamics_chart_data | tojson }};
+        let salesDynamicsChartInstance = null;
+
+        const datasets = [
+            {
+                label: 'Продажі (сума) поточного періоду',
+                data: salesDynamicsData.current_sales_sum,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                yAxisID: 'ySalesSum',
+                tension: 0.1,
+                fill: false
+            },
+            {
+                label: 'Продажі (кількість) поточного періоду',
+                data: salesDynamicsData.current_quantity_sold,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                yAxisID: 'yQuantity',
+                tension: 0.1,
+                fill: false
+            },
+            {
+                label: 'Кількість замовлень поточного періоду',
+                data: salesDynamicsData.current_order_count,
+                borderColor: 'rgba(153, 102, 255, 1)',
+                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                yAxisID: 'yQuantity', // Can share axis with quantity or have its own
+                tension: 0.1,
+                fill: false
+            }
+        ];
+
+        if (salesDynamicsData.show_comparison && salesDynamicsData.comparison_sales_sum.length > 0) {
+            datasets.push({
+                label: 'Продажі (сума) порівняльного періоду',
+                data: salesDynamicsData.comparison_sales_sum,
+                borderColor: 'rgba(255, 159, 64, 1)',
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                borderDash: [5, 5], // Dashed line for comparison
+                yAxisID: 'ySalesSum',
+                tension: 0.1,
+                fill: false
+            });
+        }
+
+        salesDynamicsChartInstance = new Chart(ctxSalesDynamics.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: salesDynamicsData.labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Дата' }
+                    },
+                    ySalesSum: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Сума (₴)' },
+                        beginAtZero: true,
+                         ticks: {
+                            callback: function(value) { return new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 0, maximumFractionDigits:0 }).format(value); }
+                        }
+                    },
+                    yQuantity: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Кількість (од.)' },
+                        beginAtZero: true,
+                        grid: { drawOnChartArea: false }, // Only show grid for primary axis
+                        ticks: {
+                            callback: function(value) { if (Number.isInteger(value)) { return value; } }, // Only integer ticks
+                            stepSize: 1 // Ensure integer steps if data allows
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataset.yAxisID === 'ySalesSum') {
+                                        label += new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH' }).format(context.parsed.y);
+                                    } else {
+                                        label += context.parsed.y + ' од.';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        console.error("Sales Dynamics Chart canvas not found or data is missing.");
+    }
+
+    // Кнопка "За замовчуванням" для динаміки продажів
+    const resetSalesDynamicsBtn = document.getElementById('resetSalesDynamicsFilters');
+    if (resetSalesDynamicsBtn) {
+        resetSalesDynamicsBtn.addEventListener('click', function() {
+            document.getElementById('start_date_dynamics').value = '{{ default_start_date_dynamics_str }}';
+            document.getElementById('end_date_dynamics').value = '{{ default_end_date_dynamics_str }}';
+            document.getElementById('comparison_type_dynamics').value = 'none';
+            document.getElementById('salesDynamicsFilterForm').submit();
+        });
+    }
+});
+</script>

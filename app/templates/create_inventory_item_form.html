@@ -1,0 +1,363 @@
+{% extends 'layout.html' %}
+
+{% block title %}Новий Запис на Складі — StockWeavix{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Новий Запис на Складі</h5>
+                    <a href="{{ url_for('inv_bp.inventory_list') }}" class="btn btn-outline-secondary btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/></svg>
+                        До списку запасів
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('inv_bp.create_inventory_item') }}" id="createInventoryItemForm">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <div class="mb-3">
+                            <label for="product_id_inv_create" class="form-label">Товар <span class="text-danger">*</span></label>
+                            <select class="form-select" id="product_id_inv_create" name="product_id" required>
+                                <option value="" {% if not form_data.get('product_id') %}selected{% endif %} disabled>Оберіть товар...</option>
+                                {% for product_item in all_products %}
+                                <option value="{{ product_item.ProductID }}" {% if form_data.get('product_id')|int == product_item.ProductID %}selected{% endif %}>
+                                    {{ product_item.ProductName }} (SKU: {{ product_item.SKU }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        {# --- Покроковий вибір локації --- #}
+                        <h6 class="mt-4">Вибір Локації:</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="warehouse_select" class="form-label">1. Склад <span class="text-danger">*</span></label>
+                                <select class="form-select location-component-select" id="warehouse_select" name="warehouse_filter">
+                                    <option value="" selected disabled>Оберіть склад...</option>
+                                    {# Заповнюється через JS #}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="zone_select" class="form-label">2. Зона</label>
+                                <select class="form-select location-component-select" id="zone_select" name="zone_filter" disabled>
+                                    <option value="" selected disabled>Спочатку оберіть склад...</option>
+                                    {# Заповнюється через JS #}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="row_select" class="form-label">3. Ряд</label>
+                                <select class="form-select location-component-select" id="row_select" name="row_filter" disabled>
+                                    <option value="" selected disabled>Спочатку оберіть зону...</option>
+                                     {# Заповнюється через JS #}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="section_select" class="form-label">4. Секція (опц.)</label>
+                                <select class="form-select location-component-select" id="section_select" name="section_filter" disabled>
+                                    <option value="" selected>Будь-яка / Немає</option>
+                                     {# Заповнюється через JS #}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="shelf_select" class="form-label">5. Полиця (опц.)</label>
+                                <select class="form-select location-component-select" id="shelf_select" name="shelf_filter" disabled>
+                                    <option value="" selected>Будь-яка / Немає</option>
+                                     {# Заповнюється через JS #}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="location_id_inv_create" class="form-label">6. Фінальна Локація <span class="text-danger">*</span></label>
+                            <select class="form-select" id="location_id_inv_create" name="location_id" required disabled>
+                                <option value="" selected disabled>Оберіть компоненти вище...</option>
+                                {# Заповнюється через JS на основі фільтрів #}
+                            </select>
+                            <div id="locationSpinner" class="spinner-border spinner-border-sm text-primary ms-2" role="status" style="display: none;">
+                                <span class="visually-hidden">Завантаження...</span>
+                            </div>
+                            <div id="locationHelp" class="form-text">Оберіть компоненти локації, щоб побачити доступні варіанти.</div>
+                        </div>
+                        {# --- Кінець покрокового вибору локації --- #}
+
+                        <div class="mb-3">
+                            <label for="quantity_inv_create" class="form-label">Кількість <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="quantity_inv_create" name="quantity" value="{{ form_data.get('quantity', 1) }}" min="1" step="1" required>
+                        </div>
+
+                        <div class="alert alert-info small">
+                            Ця форма додає новий запис про наявність товару на конкретній локації.
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('inv_bp.inventory_list') }}" class="btn btn-outline-secondary me-2">Скасувати</a>
+                            <button type="submit" class="btn btn-primary">Створити запис</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const warehouseSelect = document.getElementById('warehouse_select');
+    const zoneSelect = document.getElementById('zone_select');
+    const rowSelect = document.getElementById('row_select');
+    const sectionSelect = document.getElementById('section_select');
+    const shelfSelect = document.getElementById('shelf_select');
+    const finalLocationSelect = document.getElementById('location_id_inv_create');
+    const locationSpinner = document.getElementById('locationSpinner');
+    const locationHelp = document.getElementById('locationHelp');
+
+
+    function resetSelect(selectElement, defaultOptionText = 'Оберіть...', isOptional = false, optionalText = 'Будь-який(а)') {
+        selectElement.innerHTML = ''; // Clear previous options
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = "";
+        if (isOptional) {
+            defaultOpt.textContent = optionalText; // e.g., "Будь-яка / Немає"
+        } else {
+            defaultOpt.textContent = defaultOptionText; // e.g., "Оберіть склад..."
+        }
+        selectElement.appendChild(defaultOpt);
+        selectElement.value = "";
+
+        if (selectElement !== warehouseSelect) {
+             selectElement.disabled = true;
+        }
+    }
+
+
+    function populateSelect(selectElement, data, valueField, textField, includeEmptyOption = true, emptyOptionText = 'Будь-який(а)', selectPlaceholderText = 'Оберіть...') {
+        const previouslySelectedValue = selectElement.value; // Preserve selection if possible
+        selectElement.innerHTML = '';
+
+        if (includeEmptyOption) {
+            const placeholderOpt = document.createElement('option');
+            placeholderOpt.value = '';
+            placeholderOpt.textContent = (selectElement === warehouseSelect || selectElement === zoneSelect || selectElement === rowSelect) ? selectPlaceholderText : emptyOptionText;
+            selectElement.appendChild(placeholderOpt);
+        }
+
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item[valueField];
+            option.textContent = item[textField];
+            selectElement.appendChild(option);
+        });
+
+        if (Array.from(selectElement.options).some(opt => opt.value === previouslySelectedValue)) {
+            selectElement.value = previouslySelectedValue;
+        } else {
+            selectElement.value = '';
+        }
+        selectElement.disabled = false;
+    }
+
+
+    async function fetchAndPopulate(url, selectElement, valueField, textField, dependentSelects = [],
+                                    currentPlaceholderText = 'Оберіть...', isOptionalCurrent = false, optionalCurrentText = 'Будь-який(а)') {
+        selectElement.disabled = true;
+        locationSpinner.style.display = 'inline-block';
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                 populateSelect(selectElement, data, valueField, textField, true, optionalCurrentText, currentPlaceholderText);
+                 selectElement.disabled = false;
+            } else {
+                 resetSelect(selectElement, `Немає доступних ${textField.toLowerCase()}`, isOptionalCurrent, optionalCurrentText);
+                 selectElement.disabled = true;
+            }
+
+            dependentSelects.forEach(selConfig => {
+                const sel = selConfig.element;
+                if (sel === finalLocationSelect) {
+                    resetSelect(sel, 'Оберіть компоненти вище...');
+                } else {
+                    resetSelect(sel, selConfig.placeholder, selConfig.isOptional, selConfig.optionalText);
+                }
+                 sel.value = "";
+            });
+        } catch (error) {
+            console.error(`Error fetching ${selectElement.id}:`, error);
+            resetSelect(selectElement, 'Помилка завантаження', isOptionalCurrent, optionalCurrentText);
+            selectElement.disabled = true;
+        } finally {
+            locationSpinner.style.display = 'none';
+            filterFinalLocations();
+        }
+    }
+
+    const dependentConfig = {
+        zone: { element: zoneSelect, placeholder: 'Спочатку оберіть склад...', isOptional: false },
+        row: { element: rowSelect, placeholder: 'Спочатку оберіть зону...', isOptional: false },
+        section: { element: sectionSelect, placeholder: 'Спочатку оберіть ряд...', isOptional: true, optionalText: 'Будь-яка / Немає' },
+        shelf: { element: shelfSelect, placeholder: 'Спочатку оберіть ряд/секцію...', isOptional: true, optionalText: 'Будь-яка / Немає' },
+        final: { element: finalLocationSelect, placeholder: 'Оберіть компоненти вище...', isOptional: false }
+    };
+
+    fetchAndPopulate(
+        "{{ url_for('inv_bp.api_get_warehouses') }}", warehouseSelect, 'WarehouseID', 'WarehouseName',
+        [dependentConfig.zone, dependentConfig.row, dependentConfig.section, dependentConfig.shelf, dependentConfig.final],
+        'Оберіть склад...'
+    );
+
+    warehouseSelect.addEventListener('change', function () {
+        resetSelect(zoneSelect, 'Спочатку оберіть склад...');
+        resetSelect(rowSelect, 'Спочатку оберіть зону...');
+        resetSelect(sectionSelect, 'Будь-яка / Немає', true); // isOptional = true
+        resetSelect(shelfSelect, 'Будь-яка / Немає', true);   // isOptional = true
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+
+        if (this.value) {
+            fetchAndPopulate(
+                `{{ url_for('inv_bp.api_get_zones') }}?warehouse_id=${this.value}`, zoneSelect, 'ZoneID', 'ZoneName',
+                [dependentConfig.row, dependentConfig.section, dependentConfig.shelf, dependentConfig.final],
+                'Оберіть зону...'
+            );
+        }
+        filterFinalLocations();
+    });
+
+    zoneSelect.addEventListener('change', function () {
+        resetSelect(rowSelect, 'Спочатку оберіть зону...');
+        resetSelect(sectionSelect, 'Будь-яка / Немає', true);
+        resetSelect(shelfSelect, 'Будь-яка / Немає', true);
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+
+        if (this.value) {
+            fetchAndPopulate(
+                `{{ url_for('inv_bp.api_get_rows') }}?zone_id=${this.value}`, rowSelect, 'ZoneRowID', 'RowNumber',
+                [dependentConfig.section, dependentConfig.shelf, dependentConfig.final],
+                'Оберіть ряд...'
+            );
+        }
+        filterFinalLocations();
+    });
+
+    rowSelect.addEventListener('change', function () {
+        resetSelect(sectionSelect, 'Будь-яка / Немає', true);
+        resetSelect(shelfSelect, 'Будь-яка / Немає', true);
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+
+        if (this.value) {
+            fetchAndPopulate(
+                `{{ url_for('inv_bp.api_get_sections') }}?row_id=${this.value}`, sectionSelect, 'SectionID', 'SectionNumber',
+                [dependentConfig.shelf, dependentConfig.final], // shelf depends on section change
+                'Оберіть секцію...', true, 'Будь-яка / Немає'
+            );
+            fetchAndPopulate(
+                `{{ url_for('inv_bp.api_get_shelves') }}?row_id=${this.value}`, shelfSelect, 'ShelfID', 'ShelfLevel',
+                [dependentConfig.final],
+                'Оберіть полицю...', true, 'Будь-яка / Немає'
+            );
+        }
+        filterFinalLocations();
+    });
+
+    sectionSelect.addEventListener('change', function () {
+
+        resetSelect(shelfSelect, 'Будь-яка / Немає', true);
+        resetSelect(finalLocationSelect, 'Оберіть компоненти вище...');
+
+        const selectedRowId = rowSelect.value;
+        if (selectedRowId) {
+            let shelvesUrl = `{{ url_for('inv_bp.api_get_shelves') }}?row_id=${selectedRowId}`;
+            if (this.value) {
+                shelvesUrl += `&ion_id=${this.value}`;
+            }
+            fetchAndPopulate(
+                shelvesUrl, shelfSelect, 'ShelfID', 'ShelfLevel',
+                [dependentConfig.final],
+                'Оберіть полицю...', true, 'Будь-яка / Немає'
+            );
+        }
+        filterFinalLocations();
+    });
+
+    shelfSelect.addEventListener('change', filterFinalLocations);
+
+    async function filterFinalLocations() {
+        const warehouseId = warehouseSelect.value;
+        const zoneId = zoneSelect.value;
+        const rowId = rowSelect.value;
+        const sectionId = sectionSelect.value;
+        const shelfId = shelfSelect.value;
+
+        if (!warehouseId) {
+            resetSelect(finalLocationSelect, 'Спочатку оберіть склад...');
+            locationHelp.textContent = 'Оберіть склад для завантаження локацій.';
+            return;
+        }
+        if (!zoneId && warehouseId && zoneSelect.options.length > 1 && zoneSelect.options[0].value === "" && zoneSelect.options[0].textContent !== 'Немає доступних зон') {
+            // If warehouse is selected, but zone is not, and zones are available (not "no zones")
+            // this check prevents premature "no locations found" if user hasn't selected a zone yet.
+            resetSelect(finalLocationSelect, 'Оберіть зону...');
+            // locationHelp.textContent = 'Будь ласка, оберіть зону.';
+            return;
+        }
+        if (!rowId && zoneId && rowSelect.options.length > 1 && rowSelect.options[0].value === "" && rowSelect.options[0].textContent !== 'Немає доступних рядів') {
+            resetSelect(finalLocationSelect, 'Оберіть ряд...');
+            // locationHelp.textContent = 'Будь ласка, оберіть ряд.';
+            return;
+        }
+
+
+        let filterUrl = new URL("{{ url_for('inv_bp.api_filter_locations', _external=True) }}");
+        if(warehouseId) filterUrl.searchParams.append('warehouse_id', warehouseId);
+        if(zoneId) filterUrl.searchParams.append('zone_id', zoneId);
+        if(rowId) filterUrl.searchParams.append('row_id', rowId);
+        if(sectionId) filterUrl.searchParams.append('section_id', sectionId);
+        if(shelfId) filterUrl.searchParams.append('shelf_id', shelfId);
+
+        finalLocationSelect.disabled = true;
+        locationSpinner.style.display = 'inline-block';
+        locationHelp.textContent = 'Завантаження доступних локацій...';
+
+        try {
+            const response = await fetch(filterUrl.toString());
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const locations = await response.json();
+
+            // finalLocationSelect.innerHTML = ''; // Clear previous options by populateSelect
+            if (locations && locations.length > 0) {
+                populateSelect(finalLocationSelect, locations, 'LocationID', 'full_address', false, '', 'Оберіть фінальну локацію...');
+                finalLocationSelect.disabled = false;
+                locationHelp.textContent = `Знайдено ${locations.length} локацій. Оберіть одну.`;
+            } else {
+                resetSelect(finalLocationSelect, 'Локацій не знайдено');
+                finalLocationSelect.disabled = true;
+                locationHelp.textContent = 'За обраними критеріями локацій не знайдено. Спробуйте змінити фільтри.';
+            }
+        } catch (error) {
+            console.error('Error fetching final locations:', error);
+            resetSelect(finalLocationSelect, 'Помилка завантаження локацій');
+            locationHelp.textContent = 'Помилка при завантаженні локацій.';
+        } finally {
+            locationSpinner.style.display = 'none';
+        }
+    }
+});
+</script>
+{% endblock %}

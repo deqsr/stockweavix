@@ -158,16 +158,8 @@ def supply_details_view(supply_id):
         joinedload(SupplyContract.details).joinedload(SupplyDetail.product)
     ).get_or_404(supply_id)
 
-    calculated_total_price = 0
-    if contract.details:
-        for detail in contract.details:
-            if detail.UnitPrice and detail.Quantity:
-
-                unit_price = detail.UnitPrice if isinstance(detail.UnitPrice, (int, float, decimal.Decimal)) else 0
-                quantity = detail.Quantity if isinstance(detail.Quantity, (int, float, decimal.Decimal)) else 0
-                calculated_total_price += unit_price * quantity
-
-    display_price = contract.ContractPrice if contract.ContractPrice is not None else calculated_total_price
+    # ContractPrice should be the source of truth, as it's updated by edit_supply_contract
+    display_price = contract.ContractPrice if contract.ContractPrice is not None else decimal.Decimal('0.00')
 
     return render_template('supply_details_view.html',
                            contract=contract,
@@ -191,6 +183,7 @@ def edit_supply_contract(supply_id):
 
             if not supplier_id_form or not status_id_form:
                 flash('Постачальник та статус є обов\'язковими полями.', 'warning')
+                # Re-fetch with details for rendering template correctly after error
                 contract_to_edit = SupplyContract.query.options(
                     selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
                 ).get_or_404(supply_id)
@@ -222,31 +215,44 @@ def edit_supply_contract(supply_id):
         form_keys_for_existing_details = [k for k in request.form if k.startswith('details-')]
         ids_of_details_in_form = set()
         for key in form_keys_for_existing_details:
-            if key.endswith('-product_id'):
+            if key.endswith('-product_id'): # Check for a field that must exist per item
                 try:
-                    detail_id = int(key.split('-')[1]); ids_of_details_in_form.add(detail_id)
+                    detail_id_str = key.split('-')[1]
+                    if detail_id_str.isdigit(): # Ensure it's a number
+                         ids_of_details_in_form.add(int(detail_id_str))
                 except (IndexError, ValueError):
-                    continue
+                    continue # Malformed key, skip
+
         for detail_id in ids_of_details_in_form:
             detail_to_process = existing_details_map.get(detail_id)
-            if not detail_to_process: continue
+            if not detail_to_process: continue # Should not happen if IDs are from form
             prefix = f'details-{detail_id}-'
             if request.form.get(prefix + 'delete'):
                 db.session.delete(detail_to_process)
             else:
                 try:
-                    product_id_val = request.form.get(prefix + 'product_id', type=int)
+                    # Product ID is not directly editable for existing items, but taken from the item
+                    # product_id_val = request.form.get(prefix + 'product_id', type=int)
+                    product_id_val = detail_to_process.ProductID # Use existing product ID
+
                     quantity_str = request.form.get(prefix + 'quantity', '0')
                     unit_price_str = request.form.get(prefix + 'unit_price', '0.00').replace(',', '.')
-                    if not product_id_val: db.session.delete(detail_to_process); flash(
-                        f"Товар для існуючої деталі ID {detail_id} не було обрано, деталь видалено.", "info"); continue
+
+                    if not product_id_val: # Should not happen if item exists
+                        db.session.delete(detail_to_process);
+                        flash(f"Товар для існуючої деталі ID {detail_id} не було обрано, деталь видалено.", "info");
+                        continue
+
                     quantity_val = int(quantity_str)
                     unit_price_val = decimal.Decimal(unit_price_str)
-                    if quantity_val <= 0: db.session.delete(detail_to_process); flash(
-                        f"Кількість для деталі товару ID {product_id_val} (деталь ID {detail_id}) була 0 або менше, деталь видалено.",
-                        "info"); continue
+
+                    if quantity_val <= 0:
+                        db.session.delete(detail_to_process);
+                        flash(f"Кількість для деталі товару ID {product_id_val} (деталь ID {detail_id}) була 0 або менше, деталь видалено.","info");
+                        continue
                     if unit_price_val < decimal.Decimal('0'): unit_price_val = decimal.Decimal('0.00')
-                    detail_to_process.ProductID = product_id_val;
+
+                    # detail_to_process.ProductID = product_id_val # ProductID should not change for existing item
                     detail_to_process.Quantity = quantity_val;
                     detail_to_process.UnitPrice = unit_price_val
                 except (ValueError, decimal.InvalidOperation) as e:
@@ -262,21 +268,25 @@ def edit_supply_contract(supply_id):
         for key, value in request.form.items():
             if key.startswith('new_details-'):
                 parts = key.split('-');
-                if len(parts) == 3:
+                if len(parts) == 3: # e.g. new_details-0-product_id
                     index_str, field_name = parts[1], parts[2];
                     if index_str not in new_details_form_data: new_details_form_data[index_str] = {
-                        '_form_index': index_str}
+                        '_form_index': index_str} # Store index for error messages
                     new_details_form_data[index_str][field_name] = value
+
         for _form_idx, data_dict in new_details_form_data.items():
             product_id_str = data_dict.get('product_id')
-            if not product_id_str or not product_id_str.strip(): continue
+            if not product_id_str or not product_id_str.strip(): continue # Skip if no product selected
+
             try:
                 product_id = int(product_id_str);
-                quantity = int(data_dict.get('quantity', '0'));
-                unit_price_str = data_dict.get('unit_price', '0.00').replace(',', '.');
+                quantity = int(data_dict.get('quantity', '0')); # Default to 0 if not present
+                unit_price_str = data_dict.get('unit_price', '0.00').replace(',', '.'); # Default to 0.00
                 unit_price = decimal.Decimal(unit_price_str)
-                if quantity <= 0: continue
-                if unit_price < decimal.Decimal('0'): unit_price = decimal.Decimal('0.00')
+
+                if quantity <= 0: continue # Skip if quantity is zero or less
+                if unit_price < decimal.Decimal('0'): unit_price = decimal.Decimal('0.00') # Ensure non-negative
+
                 new_supply_detail = SupplyDetail(SupplyID=contract_to_edit.SupplyID, ProductID=product_id,
                                                  Quantity=quantity, UnitPrice=unit_price)
                 db.session.add(new_supply_detail)
@@ -290,13 +300,15 @@ def edit_supply_contract(supply_id):
                                        all_products=all_products_for_form, form_data=request.form), 400
 
         try:
-            db.session.flush()
+            db.session.flush() # Make sure details are in session to be queried for sum
             calculated_total_price = decimal.Decimal('0.00')
+            # Iterate over current details in the session for this contract
             for detail_item in contract_to_edit.details:
-                if detail_item in db.session.deleted: continue
+                if detail_item in db.session.deleted:  # Skip items marked for deletion
+                    continue
                 if detail_item.Quantity is not None and detail_item.UnitPrice is not None:
-                    qty = decimal.Decimal(str(detail_item.Quantity))
-                    price = decimal.Decimal(str(detail_item.UnitPrice))
+                    qty = decimal.Decimal(str(detail_item.Quantity)) # Ensure Decimal
+                    price = decimal.Decimal(str(detail_item.UnitPrice)) # Ensure Decimal
                     calculated_total_price += qty * price
             contract_to_edit.ContractPrice = calculated_total_price
         except Exception as e_flush_or_calc:
@@ -311,22 +323,13 @@ def edit_supply_contract(supply_id):
         try:
             db.session.commit()
             flash(f'Поставку ID {contract_to_edit.SupplyID} успішно оновлено.', 'success')
-
+            # Re-fetch to ensure all data is fresh for the redirect or re-render
             contract_to_edit = SupplyContract.query.options(
                 selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
-            ).get_or_404(supply_id)
+            ).get_or_404(supply_id) # Re-fetch after commit
 
-            form_data_after_save = {
-                'supplier_id': contract_to_edit.SupplierID,
-                'status_id': contract_to_edit.SupplyStatusID,
-                'description': contract_to_edit.Description or "",
-            }
-            return render_template('edit_supply_form.html',
-                                   contract=contract_to_edit,
-                                   all_suppliers=all_suppliers_edit,
-                                   all_statuses=all_statuses_edit,
-                                   all_products=all_products_for_form,
-                                   form_data=form_data_after_save)
+            # It's better to redirect to view page after successful save
+            return redirect(url_for('supplies_bp.supply_details_view', supply_id=contract_to_edit.SupplyID))
 
         except Exception as e_commit:
             db.session.rollback()
@@ -346,8 +349,13 @@ def edit_supply_contract(supply_id):
         'status_id': contract_to_edit.SupplyStatusID,
         'description': contract_to_edit.Description or "",
     }
+    # Ensure contract is fresh for GET request if coming from a failed POST
+    contract_to_render_get = SupplyContract.query.options(
+        selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
+    ).get_or_404(supply_id)
+
     return render_template('edit_supply_form.html',
-                           contract=contract_to_edit,
+                           contract=contract_to_render_get,
                            all_suppliers=all_suppliers_edit,
                            all_statuses=all_statuses_edit,
                            all_products=all_products_for_form,
