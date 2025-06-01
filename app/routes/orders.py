@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from sqlalchemy import desc, or_, and_, func as sqlfunc  # Перейменував func на sqlfunc для уникнення конфлікту
+from sqlalchemy import desc, or_, and_
 from app.models import db, Order, OrderItem, OrderStatus, Client, Product, City
 from sqlalchemy.orm import joinedload, selectinload
 from datetime import datetime, date, timezone
 import decimal
-import re  # Для очищення номера телефону
 
 orders_bp = Blueprint('orders_bp', __name__, url_prefix='/orders')
 
@@ -64,25 +63,14 @@ def list_orders():
     if search_term:
         search_or_conditions = []
 
-        # 1. Спроба пошуку за числовим OrderID
-        is_order_id_search = False
         try:
             order_id_for_search = int(search_term)
             search_or_conditions.append(Order.OrderID == order_id_for_search)
-            is_order_id_search = True
         except ValueError:
-            # Якщо не ID, то це текстовий пошук
             pass
 
-        # 2. Якщо це не був пошук тільки за OrderID, додаємо інші умови
-        # Або якщо ми хочемо, щоб навіть при числовому search_term шукало і в інших полях
-        # (наприклад, якщо номер телефону випадково збігається з ID) - тоді is_order_id_search не потрібен
-
-        # Додаємо пошук по опису замовлення
         search_or_conditions.append(Order.Description.ilike(f"%{search_term}%"))
 
-        # Приєднуємо Client та City через outerjoin для текстового пошуку
-        # Робимо це тільки один раз, якщо вони ще не були приєднані
         if Order.client not in active_joins:
             query = query.outerjoin(Order.client)
             active_joins.add(Order.client)
@@ -90,14 +78,11 @@ def list_orders():
             query = query.outerjoin(Order.city)
             active_joins.add(Order.city)
 
-        # Додаємо умови пошуку по Client та City (тільки якщо search_term не був інтерпретований як OrderID,
-        # або якщо ми хочемо шукати скрізь)
-        # Щоб уникнути помилок, якщо Client або City є None, умови краще формувати так:
         search_or_conditions.extend([
             Client.LastName.ilike(f"%{search_term}%"),
             Client.FirstName.ilike(f"%{search_term}%"),
             Client.MiddleName.ilike(f"%{search_term}%"),
-            Client.Phone.ilike(f"%{search_term}%"),  # Прямий пошук по телефону
+            Client.Phone.ilike(f"%{search_term}%"),
             City.CityName.ilike(f"%{search_term}%")
         ])
 
@@ -126,7 +111,7 @@ def list_orders():
     all_clients = Client.query.order_by(Client.LastName, Client.FirstName).all()
     all_cities = City.query.order_by(City.CityName).all()
 
-    return render_template('orders_list.html',
+    return render_template('orders/orders_list.html',
                            orders=orders_on_page,
                            pagination=pagination,
                            all_statuses=all_statuses,
@@ -159,7 +144,7 @@ def create_order():
 
         if not order_status:
             flash(f"Помилка: Не знайдено статус за замовчуванням '{status_name_default}'.", 'danger')
-            return render_template('create_order_form.html',
+            return render_template('orders/create_order_form.html',
                                    all_clients=all_clients_for_form,
                                    all_cities=all_cities_for_form,
                                    current_date=date.today().strftime('%Y-%m-%d'),
@@ -167,7 +152,7 @@ def create_order():
 
         if not client_id:
             flash("Будь ласка, оберіть клієнта.", "warning")
-            return render_template('create_order_form.html',
+            return render_template('orders/create_order_form.html',
                                    all_clients=all_clients_for_form,
                                    all_cities=all_cities_for_form,
                                    current_date=date.today().strftime('%Y-%m-%d'),
@@ -177,7 +162,7 @@ def create_order():
             order_date = datetime.strptime(order_date_str, '%Y-%m-%d').date() if order_date_str else date.today()
         except ValueError:
             flash("Некоректний формат дати замовлення.", "warning")
-            return render_template('create_order_form.html',
+            return render_template('orders/create_order_form.html',
                                    all_clients=all_clients_for_form,
                                    all_cities=all_cities_for_form,
                                    current_date=date.today().strftime('%Y-%m-%d'),
@@ -189,7 +174,7 @@ def create_order():
                 payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
             except ValueError:
                 flash("Некоректний формат дати оплати.", "warning")
-                return render_template('create_order_form.html',
+                return render_template('orders/create_order_form.html',
                                        all_clients=all_clients_for_form,
                                        all_cities=all_cities_for_form,
                                        current_date=date.today().strftime('%Y-%m-%d'),
@@ -219,7 +204,7 @@ def create_order():
         except Exception as e:
             db.session.rollback()
             flash(f'Помилка при створенні замовлення: {str(e)}', 'danger')
-            return render_template('create_order_form.html',
+            return render_template('orders/create_order_form.html',
                                    all_clients=all_clients_for_form,
                                    all_cities=all_cities_for_form,
                                    current_date=date.today().strftime('%Y-%m-%d'),
@@ -227,7 +212,7 @@ def create_order():
 
     # GET
     current_date_str = date.today().strftime('%Y-%m-%d')
-    return render_template('create_order_form.html',
+    return render_template('orders/create_order_form.html',
                            all_clients=all_clients_for_form,
                            all_cities=all_cities_for_form,
                            current_date=current_date_str,
@@ -242,7 +227,7 @@ def view_order(order_id):
         joinedload(Order.city),
         selectinload(Order.items).joinedload(OrderItem.product)
     ).get_or_404(order_id)
-    return render_template('order_details_view.html', order=order)
+    return render_template('orders/order_details_view.html', order=order)
 
 
 @orders_bp.route('/<int:order_id>/edit', methods=['GET', 'POST'])
@@ -268,7 +253,7 @@ def edit_order(order_id):
 
             if not client_id_form or not status_id_form or not order_date_str:
                 flash('Клієнт, статус та дата замовлення є обов\'язковими.', 'warning')
-                return render_template('edit_order_form.html',
+                return render_template('orders/edit_order_form.html',
                                        order=order_to_edit,
                                        all_clients=all_clients_for_form,
                                        all_statuses=all_statuses_for_form,
@@ -303,7 +288,7 @@ def edit_order(order_id):
 
         except ValueError as ve:
             flash(f'Некоректний формат дати: {ve}', 'warning')
-            return render_template('edit_order_form.html',
+            return render_template('orders/edit_order_form.html',
                                    order=order_to_edit, all_clients=all_clients_for_form,
                                    all_statuses=all_statuses_for_form, all_products=all_products_for_form,
                                    all_cities=all_cities_for_form,
@@ -315,7 +300,7 @@ def edit_order(order_id):
                 selectinload(Order.items).joinedload(OrderItem.product),
                 joinedload(Order.city)
             ).get_or_404(order_id)
-            return render_template('edit_order_form.html', order=order_to_edit, all_clients=all_clients_for_form,
+            return render_template('orders/edit_order_form.html', order=order_to_edit, all_clients=all_clients_for_form,
                                    all_statuses=all_statuses_for_form, all_products=all_products_for_form,
                                    all_cities=all_cities_for_form,
                                    form_data=form_data_post), 500
@@ -359,7 +344,7 @@ def edit_order(order_id):
                     flash(f"Некоректні дані для оновлення позиції ID {item_id}: {e}", "warning")
                     order_to_edit = Order.query.options(selectinload(Order.items).joinedload(OrderItem.product),
                                                         joinedload(Order.city)).get_or_404(order_id)
-                    return render_template('edit_order_form.html', order=order_to_edit,
+                    return render_template('orders/edit_order_form.html', order=order_to_edit,
                                            all_clients=all_clients_for_form, all_statuses=all_statuses_for_form,
                                            all_products=all_products_for_form, all_cities=all_cities_for_form,
                                            form_data=form_data_post), 400
@@ -404,7 +389,7 @@ def edit_order(order_id):
                 flash(f"Некоректні дані для нового товару в замовленні (форма індекс {_form_idx}): {e}", "warning")
                 order_to_edit = Order.query.options(selectinload(Order.items).joinedload(OrderItem.product),
                                                     joinedload(Order.city)).get_or_404(order_id)
-                return render_template('edit_order_form.html', order=order_to_edit, all_clients=all_clients_for_form,
+                return render_template('orders/edit_order_form.html', order=order_to_edit, all_clients=all_clients_for_form,
                                        all_statuses=all_statuses_for_form, all_products=all_products_for_form,
                                        all_cities=all_cities_for_form, form_data=form_data_post), 400
 
@@ -417,7 +402,7 @@ def edit_order(order_id):
             flash(f'Помилка при збереженні замовлення: {str(e_commit)}', 'danger')
             order_to_edit = Order.query.options(selectinload(Order.items).joinedload(OrderItem.product),
                                                 joinedload(Order.city)).get_or_404(order_id)
-            return render_template('edit_order_form.html',
+            return render_template('orders/edit_order_form.html',
                                    order=order_to_edit,
                                    all_clients=all_clients_for_form,
                                    all_statuses=all_statuses_for_form,
@@ -440,7 +425,7 @@ def edit_order(order_id):
         'description': order_to_edit.Description or '',
         'shipping_address': initial_shipping_address
     }
-    return render_template('edit_order_form.html',
+    return render_template('orders/edit_order_form.html',
                            order=order_to_edit,
                            all_clients=all_clients_for_form,
                            all_statuses=all_statuses_for_form,

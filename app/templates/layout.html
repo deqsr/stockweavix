@@ -28,7 +28,6 @@
           <li class="nav-item">
               <a class="nav-link {% if request.blueprint == 'products_bp' %}active{% endif %}" href="{{ url_for('products_bp.list_products') }}">Товари</a>
           </li>
-          {# ... інші пункти меню для авторизованих ... #}
             <li class="nav-item">
               <a class="nav-link {% if request.blueprint == 'inv_bp' %}active{% endif %}" href="{{ url_for('inv_bp.inventory_list') }}">Запаси</a>
             </li>

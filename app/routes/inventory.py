@@ -59,7 +59,7 @@ def inventory_list():
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template(
-        'inventory_list.html',
+        'inventory/inventory_list.html',
         pagination=pagination,
         all_categories_for_filter=all_categories_for_filter,
         selected_category_id=cat_id,
@@ -81,13 +81,13 @@ def create_inventory_item():
 
         if not product_id or not location_id or quantity is None:
             flash('Товар, фінальна локація та кількість є обов\'язковими полями.', 'warning')
-            return render_template('create_inventory_item_form.html',
+            return render_template('inventory/create_inventory_item_form.html',
                                    all_products=all_products_for_form,
                                    form_data=form_data), 400
 
         if quantity <= 0:
             flash('Кількість повинна бути більше нуля.', 'warning')
-            return render_template('create_inventory_item_form.html',
+            return render_template('inventory/create_inventory_item_form.html',
                                    all_products=all_products_for_form,
                                    form_data=form_data), 400
 
@@ -115,11 +115,11 @@ def create_inventory_item():
         except Exception as e:
             db.session.rollback()
             flash(f'Помилка при створенні запису: {str(e)}', 'danger')
-            return render_template('create_inventory_item_form.html',
+            return render_template('inventory/create_inventory_item_form.html',
                                    all_products=all_products_for_form,
                                    form_data=request.form)
 
-    return render_template('create_inventory_item_form.html',
+    return render_template('inventory/create_inventory_item_form.html',
                            all_products=all_products_for_form,
                            form_data=form_data)
 
@@ -134,7 +134,7 @@ def view_inventory_item(inventory_id):
         joinedload(Inventory.location).joinedload(Location.section),
         joinedload(Inventory.location).joinedload(Location.shelf)
     ).get_or_404(inventory_id)
-    return render_template('inventory_item_details_view.html', item=item)
+    return render_template('inventory/inventory_item_details_view.html', item=item)
 
 
 @inv_bp.route('/<int:inventory_id>/edit', methods=['GET', 'POST'])
@@ -155,13 +155,13 @@ def edit_inventory_item(inventory_id):
 
         if location_id_form is None or quantity_form is None:
             flash('Фінальна локація та кількість є обов\'язковими для оновлення.', 'warning')
-            return render_template('edit_inventory_item_form.html',
+            return render_template('inventory/edit_inventory_item_form.html',
                                    inventory_item=inventory_item_to_edit,
                                    form_data=form_data_from_req), 400
 
         if quantity_form < 0:
             flash('Кількість не може бути від\'ємною.', 'warning')
-            return render_template('edit_inventory_item_form.html',
+            return render_template('inventory/edit_inventory_item_form.html',
                                    inventory_item=inventory_item_to_edit,
                                    form_data=form_data_from_req), 400
 
@@ -176,7 +176,7 @@ def edit_inventory_item(inventory_id):
                 flash(
                     f'Неможливо змінити локацію. Товар "{product.ProductName if product else "N/A"}" вже існує на вибраній новій локації (ID запису: {conflicting_item.InventoryID}). Видаліть або об\'єднайте записи.',
                     'danger')
-                return render_template('edit_inventory_item_form.html',
+                return render_template('inventory/edit_inventory_item_form.html',
                                        inventory_item=inventory_item_to_edit,
                                        form_data=request.form)
 
@@ -191,14 +191,14 @@ def edit_inventory_item(inventory_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Помилка при оновленні запису: {str(e)}', 'danger')
-            return render_template('edit_inventory_item_form.html',
+            return render_template('inventory/edit_inventory_item_form.html',
                                    inventory_item=inventory_item_to_edit,
                                    form_data=request.form)
 
     form_data_for_get = {
         'quantity': inventory_item_to_edit.Quantity
     }
-    return render_template('edit_inventory_item_form.html',
+    return render_template('inventory/edit_inventory_item_form.html',
                            inventory_item=inventory_item_to_edit,
                            form_data=form_data_for_get)
 

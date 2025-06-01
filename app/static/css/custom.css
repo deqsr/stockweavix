@@ -87,7 +87,7 @@ body {
   color: white; /* Білий текст на сірому фоні */
 }
 
-.badge.supply-new { background-color: #6c757d; color: white; }               /* Новий (використовуємо темно-сірий, як для voided, або можна змінити) */
+.badge.supply-new { background-color: #88c2f3; color: white; }               /* Новий (Блакитний) */
 .badge.supply-active { background-color: #0d6efd; color: white; }             /* Активний (Синій) */
 .badge.supply-completed { background-color: #198754; color: white; }          /* Виконаний (Зелений) */
 .badge.supply-pending-signature { background-color: #ffc107; color: black; } /* Очікує підписання (Жовтий) */

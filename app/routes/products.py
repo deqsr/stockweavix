@@ -57,7 +57,7 @@ def list_products():
     all_categories = ProductCategory.query.order_by(ProductCategory.CategoryName).all()
     all_manufacturers = Manufacturer.query.order_by(Manufacturer.ManufacturerName).all()
 
-    return render_template('products_list.html',
+    return render_template('products/products_list.html',
                            products=products_on_page,
                            pagination=pagination,
                            all_categories=all_categories,
@@ -82,7 +82,7 @@ def create_product():
 
         if not product_name or not category_id_str:
             flash('Назва товару та категорія є обов\'язковими полями.', 'warning')
-            return render_template('create_product_form.html',
+            return render_template('products/create_product_form.html',
                                    all_categories=all_categories,
                                    all_manufacturers=all_manufacturers,
                                    form_data=form_data), 400
@@ -90,7 +90,7 @@ def create_product():
             category_id = int(category_id_str)
         except ValueError:
             flash('Некоректне значення для категорії.', 'warning')
-            return render_template('create_product_form.html',
+            return render_template('products/create_product_form.html',
                                    all_categories=all_categories,
                                    all_manufacturers=all_manufacturers,
                                    form_data=form_data), 400
@@ -107,13 +107,13 @@ def create_product():
                     price = price_val
                 else:
                     flash('Ціна не може бути від\'ємною.', 'warning')
-                    return render_template('create_product_form.html',
+                    return render_template('products/create_product_form.html',
                                            all_categories=all_categories,
                                            all_manufacturers=all_manufacturers,
                                            form_data=form_data), 400
             except decimal.InvalidOperation:
                 flash('Некоректний формат ціни.', 'warning')
-                return render_template('create_product_form.html',
+                return render_template('products/create_product_form.html',
                                        all_categories=all_categories,
                                        all_manufacturers=all_manufacturers,
                                        form_data=form_data), 400
@@ -140,14 +140,14 @@ def create_product():
                 flash(
                     f'Згенерований SKU "{generated_sku}" вже існує. Це може статися через паралельні операції або якщо останній SKU був видалений. Спробуйте ще раз.',
                     'danger')
-                return render_template('create_product_form.html',
+                return render_template('products/create_product_form.html',
                                        all_categories=all_categories,
                                        all_manufacturers=all_manufacturers,
                                        form_data=form_data), 500
         except Exception as e_sku:
             db.session.rollback()
             flash(f'Помилка при генерації SKU: {str(e_sku)}', 'danger')
-            return render_template('create_product_form.html',
+            return render_template('products/create_product_form.html',
                                    all_categories=all_categories,
                                    all_manufacturers=all_manufacturers,
                                    form_data=form_data)
@@ -175,12 +175,12 @@ def create_product():
                     'danger')
             else:
                 flash(f'Помилка при створенні товару: {str(e)}', 'danger')
-            return render_template('create_product_form.html',
+            return render_template('products/create_product_form.html',
                                    all_categories=all_categories,
                                    all_manufacturers=all_manufacturers,
                                    form_data=form_data)
 
-    return render_template('create_product_form.html',
+    return render_template('products/create_product_form.html',
                            all_categories=all_categories,
                            all_manufacturers=all_manufacturers,
                            form_data={})
@@ -192,7 +192,7 @@ def view_product(product_id):
         joinedload(Product.category),
         joinedload(Product.manufacturer)
     ).get_or_404(product_id)
-    return render_template('product_details_view.html', product=product_item)
+    return render_template('products/product_details_view.html', product=product_item)
 
 
 @products_bp.route('/<int:product_id>/edit', methods=['GET', 'POST'])
@@ -211,14 +211,14 @@ def edit_product(product_id):
 
         if not product_name or not category_id_str:
             flash('Назва товару та категорія є обов\'язковими полями.', 'warning')
-            return render_template('edit_product_form.html', product=product_to_edit,
+            return render_template('products/edit_product_form.html', product=product_to_edit,
                                    all_categories=all_categories, all_manufacturers=all_manufacturers,
                                    form_data=form_data), 400
         try:
             category_id = int(category_id_str)
         except ValueError:
             flash('Некоректне значення для категорії.', 'warning')
-            return render_template('edit_product_form.html', product=product_to_edit,
+            return render_template('products/edit_product_form.html', product=product_to_edit,
                                    all_categories=all_categories, all_manufacturers=all_manufacturers,
                                    form_data=form_data), 400
 
@@ -234,12 +234,12 @@ def edit_product(product_id):
                     price = price_val
                 else:
                     flash('Ціна не може бути від\'ємною.', 'warning')
-                    return render_template('edit_product_form.html', product=product_to_edit,
+                    return render_template('products/edit_product_form.html', product=product_to_edit,
                                            all_categories=all_categories, all_manufacturers=all_manufacturers,
                                            form_data=form_data), 400
             except decimal.InvalidOperation:
                 flash('Некоректний формат ціни.', 'warning')
-                return render_template('edit_product_form.html', product=product_to_edit,
+                return render_template('products/edit_product_form.html', product=product_to_edit,
                                        all_categories=all_categories, all_manufacturers=all_manufacturers,
                                        form_data=form_data), 400
 
@@ -258,7 +258,7 @@ def edit_product(product_id):
             db.session.rollback()
             flash(f'Помилка при оновленні товару: {str(e)}', 'danger')
             product_to_edit = Product.query.get_or_404(product_id)
-            return render_template('edit_product_form.html', product=product_to_edit,
+            return render_template('products/edit_product_form.html', product=product_to_edit,
                                    all_categories=all_categories, all_manufacturers=all_manufacturers,
                                    form_data=form_data)
 
@@ -271,6 +271,6 @@ def edit_product(product_id):
         'price': f"{product_to_edit.Price:.2f}" if product_to_edit.Price is not None else '',
         'description': product_to_edit.ProductDescription or ''
     }
-    return render_template('edit_product_form.html', product=product_to_edit,
+    return render_template('products/edit_product_form.html', product=product_to_edit,
                            all_categories=all_categories, all_manufacturers=all_manufacturers,
                            form_data=form_data_get)

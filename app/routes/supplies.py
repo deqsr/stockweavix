@@ -85,7 +85,7 @@ def list_supplies():
             'total_items': total_items_in_supply
         })
 
-    return render_template('supplies_list.html',
+    return render_template('supplies/supplies_list.html',
                            supplies=supplies_data,
                            pagination=pagination,
                            all_statuses=all_statuses,
@@ -109,14 +109,14 @@ def create_supply_contract():
                   'danger')
 
             all_suppliers_for_form = Supplier.query.order_by(Supplier.SupplierName).all()
-            return render_template('create_supply_form.html',
+            return render_template('supplies/create_supply_form.html',
                                    all_suppliers=all_suppliers_for_form,
                                    form_data=request.form), 500
 
         if not supplier_id:
             flash('Будь ласка, оберіть постачальника.', 'warning')
             all_suppliers_for_form = Supplier.query.order_by(Supplier.SupplierName).all()
-            return render_template('create_supply_form.html',
+            return render_template('supplies/create_supply_form.html',
                                    all_suppliers=all_suppliers_for_form,
                                    form_data=request.form), 400
 
@@ -141,13 +141,13 @@ def create_supply_contract():
             db.session.rollback()
             flash(f'Помилка при створенні поставки: {str(e)}', 'danger')
             all_suppliers_for_form = Supplier.query.order_by(Supplier.SupplierName).all()
-            return render_template('create_supply_form.html',
+            return render_template('supplies/create_supply_form.html',
                                    all_suppliers=all_suppliers_for_form,
                                    form_data=request.form)
 
     # GET-запит
     all_suppliers_for_form = Supplier.query.order_by(Supplier.SupplierName).all()
-    return render_template('create_supply_form.html', all_suppliers=all_suppliers_for_form, form_data={})
+    return render_template('supplies/create_supply_form.html', all_suppliers=all_suppliers_for_form, form_data={})
 
 
 @supplies_bp.route('/<int:supply_id>/details')
@@ -161,7 +161,7 @@ def supply_details_view(supply_id):
     # ContractPrice should be the source of truth, as it's updated by edit_supply_contract
     display_price = contract.ContractPrice if contract.ContractPrice is not None else decimal.Decimal('0.00')
 
-    return render_template('supply_details_view.html',
+    return render_template('supplies/supply_details_view.html',
                            contract=contract,
                            display_price=display_price)
 
@@ -187,7 +187,7 @@ def edit_supply_contract(supply_id):
                 contract_to_edit = SupplyContract.query.options(
                     selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
                 ).get_or_404(supply_id)
-                return render_template('edit_supply_form.html',
+                return render_template('supplies/edit_supply_form.html',
                                        contract=contract_to_edit,
                                        all_suppliers=all_suppliers_edit,
                                        all_statuses=all_statuses_edit,
@@ -204,7 +204,7 @@ def edit_supply_contract(supply_id):
             contract_to_edit = SupplyContract.query.options(
                 selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
             ).get_or_404(supply_id)
-            return render_template('edit_supply_form.html',
+            return render_template('supplies/edit_supply_form.html',
                                    contract=contract_to_edit,
                                    all_suppliers=all_suppliers_edit,
                                    all_statuses=all_statuses_edit,
@@ -260,7 +260,7 @@ def edit_supply_contract(supply_id):
                     flash(f"Некоректні дані для оновлення деталі ID {detail_id}: {e}", "warning")
                     contract_to_edit = SupplyContract.query.options(
                         selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
-                    return render_template('edit_supply_form.html', contract=contract_to_edit,
+                    return render_template('supplies/edit_supply_form.html', contract=contract_to_edit,
                                            all_suppliers=all_suppliers_edit, all_statuses=all_statuses_edit,
                                            all_products=all_products_for_form, form_data=request.form), 400
 
@@ -295,7 +295,7 @@ def edit_supply_contract(supply_id):
                 flash(f"Некоректні дані для нового товару (форма індекс {_form_idx}): {e}", "warning")
                 contract_to_edit = SupplyContract.query.options(
                     selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
-                return render_template('edit_supply_form.html', contract=contract_to_edit,
+                return render_template('supplies/edit_supply_form.html', contract=contract_to_edit,
                                        all_suppliers=all_suppliers_edit, all_statuses=all_statuses_edit,
                                        all_products=all_products_for_form, form_data=request.form), 400
 
@@ -316,7 +316,7 @@ def edit_supply_contract(supply_id):
             flash(f"Помилка під час розрахунку суми: {e_flush_or_calc}", "danger")
             contract_to_edit = SupplyContract.query.options(
                 selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
-            return render_template('edit_supply_form.html', contract=contract_to_edit, all_suppliers=all_suppliers_edit,
+            return render_template('supplies/edit_supply_form.html', contract=contract_to_edit, all_suppliers=all_suppliers_edit,
                                    all_statuses=all_statuses_edit, all_products=all_products_for_form,
                                    form_data=request.form), 500
 
@@ -336,7 +336,7 @@ def edit_supply_contract(supply_id):
             flash(f'Помилка під час збереження змін до БД: {e_commit}', 'danger')
             contract_to_edit = SupplyContract.query.options(
                 selectinload(SupplyContract.details).selectinload(SupplyDetail.product)).get_or_404(supply_id)
-            return render_template('edit_supply_form.html',
+            return render_template('supplies/edit_supply_form.html',
                                    contract=contract_to_edit,
                                    all_suppliers=all_suppliers_edit,
                                    all_statuses=all_statuses_edit,
@@ -354,7 +354,7 @@ def edit_supply_contract(supply_id):
         selectinload(SupplyContract.details).selectinload(SupplyDetail.product)
     ).get_or_404(supply_id)
 
-    return render_template('edit_supply_form.html',
+    return render_template('supplies/edit_supply_form.html',
                            contract=contract_to_render_get,
                            all_suppliers=all_suppliers_edit,
                            all_statuses=all_statuses_edit,

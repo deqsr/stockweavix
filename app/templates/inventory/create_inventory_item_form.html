@@ -129,13 +129,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     function resetSelect(selectElement, defaultOptionText = 'Оберіть...', isOptional = false, optionalText = 'Будь-який(а)') {
-        selectElement.innerHTML = ''; // Clear previous options
+        selectElement.innerHTML = '';
         const defaultOpt = document.createElement('option');
         defaultOpt.value = "";
         if (isOptional) {
-            defaultOpt.textContent = optionalText; // e.g., "Будь-яка / Немає"
+            defaultOpt.textContent = optionalText;
         } else {
-            defaultOpt.textContent = defaultOptionText; // e.g., "Оберіть склад..."
+            defaultOpt.textContent = defaultOptionText;
         }
         selectElement.appendChild(defaultOpt);
         selectElement.value = "";

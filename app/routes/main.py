@@ -1,4 +1,3 @@
-# app/routes/main.py
 from flask import Blueprint, render_template, current_app, request, jsonify
 from sqlalchemy import func, desc, cast, Date as SQLDate, text
 from app.models import (
@@ -62,6 +61,7 @@ def get_chart_data_from_db(start_dt, end_dt, cat_id=None, mfg_id=None):
         day_data = sales_map.get(lookup_key_for_map, {'sales': 0.0, 'quantity': 0})
         sales_on_chart.append(day_data['sales'])
         quantity_on_chart.append(day_data['quantity'])
+        
 
         current_day += timedelta(days=1)
 
