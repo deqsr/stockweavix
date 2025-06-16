@@ -15,7 +15,6 @@ def parse_date(date_str, default_date):
         return default_date
 
 
-# --- Data Generation Functions ---
 
 def get_sales_dynamics_data(start_date_dt, end_date_dt, comparison_type):
     current_period_data = db.session.query(
@@ -54,7 +53,7 @@ def get_sales_dynamics_data(start_date_dt, end_date_dt, comparison_type):
             original_date = row.date
             if comparison_type == 'previous_year':
                 shifted_date = original_date + relativedelta(years=1)
-            else:  # previous_period
+            else:
                 shifted_date = original_date + timedelta(days=(end_date_dt - start_date_dt).days + 1)
             comparison_period_data_list.append({'date': shifted_date, 'total_sales_sum': row.total_sales_sum})
 
@@ -114,7 +113,7 @@ def get_abc_xyz_analysis_data(start_date_abc_xyz, end_date_abc_xyz):
     } for p in sales_data_query])
 
     df_sales = df_sales.sort_values(by='total_revenue', ascending=False)
-    df_sales['revenue_cumsum_perc'] = (df_sales['total_revenue'].cumsum() / df_sales['total_revenue'].sum()) * 100
+    df_sales['revenue_cumulative_perc'] = (df_sales['total_revenue'].cumsum() / df_sales['total_revenue'].sum()) * 100
 
     def assign_abc_class(perc):
         if perc <= 70:
@@ -124,7 +123,7 @@ def get_abc_xyz_analysis_data(start_date_abc_xyz, end_date_abc_xyz):
         else:
             return 'C'
 
-    df_sales['abc_class'] = df_sales['revenue_cumsum_perc'].apply(assign_abc_class)
+    df_sales['abc_class'] = df_sales['revenue_cumulative_perc'].apply(assign_abc_class)
 
     xyz_start_date = start_date_abc_xyz
     xyz_end_date = end_date_abc_xyz
@@ -255,7 +254,7 @@ def get_dead_stock_data(days_threshold=90):
 
 
 def get_stock_out_forecast_data(sales_period_days=30):
-    # ... (код залишається таким же, як у попередньому оновленні) ...
+
     end_date_sales = datetime.now().date()
     start_date_sales = end_date_sales - timedelta(days=sales_period_days)
 

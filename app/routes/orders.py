@@ -29,7 +29,7 @@ def list_orders():
         filter_conditions.append(Order.OrderStatusID == status_id_filter)
 
     if client_id_filter:
-        if Order.client not in active_joins:  # Використовуємо атрибут зв'язку як ключ
+        if Order.client not in active_joins:
             query = query.join(Order.client)
             active_joins.add(Order.client)
         filter_conditions.append(Client.ClientID == client_id_filter)
@@ -59,7 +59,6 @@ def list_orders():
     if filter_conditions:
         query = query.filter(and_(*filter_conditions))
 
-    # Застосування пошуку
     if search_term:
         search_or_conditions = []
 

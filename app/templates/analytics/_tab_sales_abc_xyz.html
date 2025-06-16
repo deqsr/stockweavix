@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ctxAbcPie && Object.keys(abcPieData).length > 0) {
         new Chart(ctxAbcPie.getContext('2d'), {
             type: 'pie',
-            data: { /* ... дані діаграми ... */
+            data: {
                 labels: Object.keys(abcPieData),
                 datasets: [{
                     label: 'ABC Розподіл',
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ctxXyzPie && Object.keys(xyzPieData).length > 0) {
         new Chart(ctxXyzPie.getContext('2d'), {
             type: 'doughnut',
-            data: { /* ... дані діаграми ... */
+            data: {
                 labels: Object.keys(xyzPieData),
                 datasets: [{
                     label: 'XYZ Розподіл',
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ... (функція preserveFiltersOnSubmit без змін) ...
+
 function preserveFiltersOnSubmit(currentFormElement) {
     const allForms = [
         { id: 'salesDynamicsFilterForm', params: ['start_date_dynamics', 'end_date_dynamics', 'comparison_type'] },
